@@ -1273,11 +1273,21 @@ const downloadFile = async (row: any) => {
   try {
     downloadingIds.value.push(row.resourceId)
     ElMessage.info('开始请求下载，请稍候...')
-    const url = (isTeacher.value && activeMenu.value === 'file-private') 
+    
+    // 不用管是公开还是私密页面，凡是老师角色都应该调用 course/download 接口，学生角色调用 student/download 接口
+    const url = isTeacher.value
       ? `/api/resource/course/download?resourceId=${row.resourceId}`
       : `/api/resource/student/download?resourceId=${row.resourceId}`
 
     const response = await service.get(url, { responseType: 'blob' }) as any
+    
+    // 防御性检查：如果有错误消息而且是 json，则不要乱码下载
+    if (response.data && response.data.type === 'application/json') {
+       const text = await response.data.text()
+       const json = JSON.parse(text)
+       throw new Error(json.message || '文件请求验证失败')
+    }
+
     const blob = new Blob([response.data], { type: response.headers['content-type'] })
     
     const downloadUrl = window.URL.createObjectURL(blob)
