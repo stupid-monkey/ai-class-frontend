@@ -1,5 +1,6 @@
 {
   "rewrites": [
+    { "source": "/smartclassroom/:path*", "destination": "https://cekl.d9lab.net/smartclassroom/:path*" },
     { "source": "/(.*)", "destination": "/index.html" }
   ]
 }
