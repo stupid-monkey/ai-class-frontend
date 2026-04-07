@@ -211,3 +211,9 @@ const handleLogin = async () => {
   border-radius: 8px;
 }
 </style>
+
+{
+  "rewrites": [
+    { "source": "/(.*)", "destination": "/index.html" }
+  ]
+}
