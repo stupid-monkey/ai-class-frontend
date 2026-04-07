@@ -1284,15 +1284,37 @@ const downloadFile = async (row: any) => {
     const link = document.createElement('a')
     link.href = downloadUrl
     
-    // 如果响应头中有 filename 可以取，否则回退
-    const contentDisposition = response.headers['content-disposition']
-    let fileName = row.originalFilename || 'download_file'
-    if (contentDisposition) {
-      const fileNameMatch = contentDisposition.match(/filename="?([^"]+)"?/)
-      if (fileNameMatch && fileNameMatch.length === 2) {
-        fileName = decodeURIComponent(fileNameMatch[1])
+    // 优先使用前端列表中已知正确的原始业务文件名
+    let fileName = row.originalFilename
+    
+    // 只有在没拿到原始文件名时，才尝试从响应头提取
+    if (!fileName) {
+      const contentDisposition = response.headers['content-disposition']
+      fileName = 'download_file'
+      if (contentDisposition) {
+        // 先尝试匹配符合 RFC 5987 / 6266 标准的 filename*=UTF-8''...
+        const utf8FilenameMatch = contentDisposition.match(/filename\*=UTF-8''([^;]+)/i)
+        // 再匹配传统的 filename=...
+        const fileNameMatch = contentDisposition.match(/filename="?([^"]+)"?/)
+        
+        if (utf8FilenameMatch && utf8FilenameMatch.length === 2) {
+          fileName = decodeURIComponent(utf8FilenameMatch[1])
+        } else if (fileNameMatch && fileNameMatch.length === 2) {
+          // 处理后端使用 RFC 2047 (如 =?UTF-8?Q?...?= 等邮件格式) 未解码直接塞入头部的兼容问题
+          let rawName = fileNameMatch[1]
+          if (rawName.startsWith('=?UTF-8?')) {
+            rawName = rawName.replace(/=\?(?:utf-8|UTF-8)\?(?:B|b)\?([A-Za-z0-9+/=]+)\?=/g, (_: string, p1: string) => {
+              try { return decodeURIComponent(escape(atob(p1))) } catch (e) { return p1 }
+            })
+            // 这里不做 Q-encoding (Quoted-Printable) 的复杂解码了，如果有极小概率出现的话通常依靠前面的 originalFilename
+          } else {
+            rawName = decodeURIComponent(rawName)
+          }
+          fileName = rawName
+        }
       }
     }
+    
     link.download = fileName
     
     document.body.appendChild(link)
