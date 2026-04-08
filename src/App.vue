@@ -1,13 +1,22 @@
 <template>
-  <RouterView />
+  <el-config-provider :locale="currentElementLocale">
+    <RouterView />
+  </el-config-provider>
 </template>
 
 <script setup lang="ts">
+import { computed } from 'vue'
 import { RouterView } from 'vue-router'
 import { onMounted, onBeforeUnmount } from 'vue'
 import { useUserStore } from '@/stores/user'
 import { refreshTokenApi } from '@/api/log'
 import { useRouter } from 'vue-router'
+import { useI18n } from 'vue-i18n'
+import zhCn from 'element-plus/es/locale/lang/zh-cn'
+import en from 'element-plus/es/locale/lang/en'
+
+const { locale } = useI18n()
+const currentElementLocale = computed(() => (locale.value === 'zh' ? zhCn : en))
 
 const router = useRouter()
 const userStore = useUserStore()

@@ -50,7 +50,7 @@ const emit = defineEmits(['select-date'])
 
 const currentDate = ref(new Date())
 
-// 获取每天的状态
+// 获取每天的Status
 const getDayStatus = (dateString: string) => {
   return props.calendarStatusMap[dateString] || null
 }
@@ -133,14 +133,14 @@ defineExpose({ setDate })
   z-index: 10;
 }
 
-/* 选中状态 */
+/* 选中Status */
 .custom-cal-cell.is-selected {
   background-color: #ecf5ff;
   border-color: #409EFF;
   box-shadow: 0 0 0 1px #409EFF inset, 0 4px 12px rgba(64, 158, 255, 0.15);
 }
 
-/* 日常/休息状态背景微调 */
+/* 日常/休息Status背景微调 */
 .custom-cal-cell.is-rest {
   background-color: #fff5f5;
 }
@@ -167,7 +167,7 @@ defineExpose({ setDate })
   justify-content: flex-end;
 }
 
-/* --- 状态标签 --- */
+/* --- Status标签 --- */
 .status-tag {
   font-size: 11px;
   padding: 3px 8px;

@@ -1,19 +1,19 @@
 <template>
   <el-container class="detail-container">
     <el-header class="top-header">
-      <el-button type="primary" link icon="ArrowLeft" @click="goBack">← 返回</el-button>
-      <span class="page-title">📖 作业详情</span>
+      <el-button type="primary" link icon="ArrowLeft" @click="goBack">← {{ $t('hw_detail.back') }}</el-button>
+      <span class="page-title">📖 {{ $t('hw_detail.title') }}</span>
       <span></span>
     </el-header>
 
     <el-main class="main-content">
       <el-row :gutter="20">
-        <!-- 左侧：题目列表 -->
+        <!-- 左侧：questions目列表 -->
         <el-col :xs="24" :md="16">
           <el-card shadow="hover">
             <template #header>
               <div style="display: flex; justify-content: space-between; align-items: center;">
-                <span>📝 {{ homework.knowledge }} (共 {{ homework.questionCount }} 题)</span>
+                <span>📝 {{ homework.knowledge }} ({{ $t('hw_detail.total_q', {count: homework.questionCount}) }})</span>
                 <el-tag :type="getStatusType(homework.assignmentStatus)">
                   {{ getStatusLabel(homework.assignmentStatus) }}
                 </el-tag>
@@ -25,7 +25,7 @@
                 <div class="question-header">
                   <span class="question-no">{{ Number(idx) + 1 }}.</span>
                   <span class="question-type" :class="question.type">
-                    {{ question.type === 'choice' ? '【选择题】' : '【判断题】' }}
+                    {{ question.type === 'choice' ? '[Multiple Choice]' : '[True/False]' }}
                   </span>
                 </div>
 
@@ -39,7 +39,7 @@
                   </div>
                 </div>
 
-                <!-- 答题区域 -->
+                <!-- 答questions区域 -->
                 <div class="answer-area">
                   <el-radio-group 
                     v-if="question.type === 'choice'" 
@@ -61,18 +61,18 @@
                     v-model="studentAnswers[Number(idx)]"
                     :disabled="homework.assignmentStatus !== 'ASSIGNED'"
                   >
-                    <el-radio label="正确" style="margin-right: 20px;">✓ 正确</el-radio>
-                    <el-radio label="错误">✗ 错误</el-radio>
+                    <el-radio label="正确" style="margin-right: 20px;">✓ {{ $t('hw_detail.correct') }}</el-radio>
+                    <el-radio label="错误">✗ {{ $t('hw_detail.incorrect') }}</el-radio>
                   </el-radio-group>
                 </div>
 
-                <!-- 显示标准答案和解析（如果已批改） -->
-                <div v-if="homework.assignmentStatus !== 'ASSIGNED'" class="answer-display">
+                <!-- 显示标准答案和解析（如果Reviewed） -->
+                <div v-if="homework.assignmentStatus === 'REVIEWED' || homework.currentAssignment?.status === 'REVIEWED'" class="answer-display">
                   <div class="standard-answer">
-                    <strong>标准答案:</strong> {{ question.answer }}
+                    <strong>{{ $t('hw_detail.std_ans') }}:</strong> {{ question.answer }}
                   </div>
                   <div class="explanation">
-                    <strong>解析:</strong> {{ question.explanation || '暂无解析' }}
+                    <strong>{{ $t('hw_detail.explanation') }}:</strong> {{ question.explanation || $t('hw_detail.no_exp') }}
                   </div>
                 </div>
 
@@ -81,12 +81,12 @@
 
               <!-- 备注输入 -->
               <div v-if="homework.assignmentStatus === 'ASSIGNED'" class="note-area">
-                <el-form-item label="备注（可选）">
+                <el-form-item :label="$t('hw_detail.note')">
                   <el-input 
                     v-model="submitNote" 
                     type="textarea" 
                     :rows="3"
-                    placeholder="例如：第3题有疑问，请老师讲解"
+                    :placeholder="$t('hw_detail.note_place')"
                   />
                 </el-form-item>
               </div>
@@ -94,7 +94,7 @@
               <!-- 提交按钮 -->
               <div v-if="homework.assignmentStatus === 'ASSIGNED'" class="submit-area">
                 <el-button type="primary" @click="submitHomework" :loading="isSubmitting" size="large">
-                  ✅ 提交答案
+                  ✅ {{ $t('hw_detail.submit') }}
                 </el-button>
               </div>
             </div>
@@ -105,23 +105,23 @@
         <el-col :xs="24" :md="8">
           <el-card shadow="hover" class="info-card">
             <template #header>
-              <span>📋 作业信息</span>
+              <span>📋 {{ $t('hw_detail.hw_info') }}</span>
             </template>
 
             <el-descriptions :column="1" border style="margin-bottom: 20px;">
-              <el-descriptions-item label="教师">{{ homework.teacherName }}</el-descriptions-item>
-              <el-descriptions-item label="知识点">{{ homework.knowledge }}</el-descriptions-item>
-              <el-descriptions-item label="难度">
+              <el-descriptions-item :label="$t('hw_detail.teacher')">{{ homework.teacherName }}</el-descriptions-item>
+              <el-descriptions-item :label="$t('hw_detail.knowledge')">{{ homework.knowledge }}</el-descriptions-item>
+              <el-descriptions-item :label="$t('hw_detail.diff')">
                 <el-tag :type="getDifficultyType(homework.difficulty)">
-                  {{ homework.difficulty === 'easy' ? '简单' : homework.difficulty === 'medium' ? '中等' : '困难' }}
+                  {{ homework.difficulty === 'easy' ? $t('hw_detail.easy') : homework.difficulty === 'medium' ? $t('hw_detail.medium') : $t('hw_detail.hard') }}
                 </el-tag>
               </el-descriptions-item>
-              <el-descriptions-item label="题型">
+              <el-descriptions-item :label="$t('hw_detail.q_type')">
                 {{ homework.questionTypes.map(mapQuestionType).join('、') }}
               </el-descriptions-item>
-              <el-descriptions-item label="题目数">{{ homework.questionCount }}</el-descriptions-item>
-              <el-descriptions-item label="发布时间">{{ formatTime(homework.createdAt) }}</el-descriptions-item>
-              <el-descriptions-item label="班级">
+              <el-descriptions-item :label="$t('hw_detail.q_count')">{{ homework.questionCount }}</el-descriptions-item>
+              <el-descriptions-item :label="$t('hw_detail.pub_time')">{{ formatTime(homework.createdAt) }}</el-descriptions-item>
+              <el-descriptions-item :label="$t('hw_detail.class')">
                 {{ homework.classNames?.join('、') || '-' }}
               </el-descriptions-item>
             </el-descriptions>
@@ -129,19 +129,21 @@
             <!-- 提交信息 -->
             <el-card v-if="homework.currentAssignment" shadow="never">
               <template #header>
-                <span>✉️ 提交信息</span>
+                <span>✉️ {{ $t('hw_detail.sub_info') }}</span>
               </template>
               <el-descriptions :column="1" border>
-                <el-descriptions-item label="提交时间">
+                <el-descriptions-item :label="$t('hw_detail.sub_time')">
                   {{ formatTime(homework.currentAssignment.submittedAt) }}
                 </el-descriptions-item>
-                <el-descriptions-item v-if="homework.currentAssignment.note" label="你的备注">
+                <el-descriptions-item v-if="homework.currentAssignment.note" :label="$t('hw_detail.your_note')">
                   {{ homework.currentAssignment.note }}
                 </el-descriptions-item>
-                <el-descriptions-item v-if="homework.currentAssignment.score !== null" label="得分">
-                  <el-tag type="success" size="large">{{ homework.currentAssignment.score }} 分</el-tag>
+                <el-descriptions-item v-if="homework.currentAssignment.score !== null" :label="$t('hw_detail.score') || 'Score'">
+                  <el-tag type="success" size="large">{{ homework.currentAssignment.score }} {{ $t('hw_detail.score_unit') || 'Points' }}</el-tag>
+                  <el-tag v-if="homework.currentAssignment.reviewSource === 'AI'" type="info" size="small" style="margin-left: 8px;">AI Graded</el-tag>
+                  <el-tag v-else-if="homework.currentAssignment.reviewSource === 'TEACHER'" type="primary" size="small" style="margin-left: 8px;">Teacher Graded</el-tag>
                 </el-descriptions-item>
-                <el-descriptions-item v-if="homework.currentAssignment.feedback" label="老师评语">
+                <el-descriptions-item v-if="homework.currentAssignment.feedback" :label="$t('hw_detail.feedback') || 'Feedback'">
                   {{ homework.currentAssignment.feedback }}
                 </el-descriptions-item>
               </el-descriptions>
@@ -155,6 +157,7 @@
 
 <script setup lang="ts">
 import { ref, reactive, onMounted } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { useRouter, useRoute } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import { getHomeworkDetailApi, submitHomeworkApi } from '@/api/ai'
@@ -168,6 +171,7 @@ const props = defineProps<{
 const emit = defineEmits(['back'])
 
 const router = useRouter()
+const { t } = useI18n()
 const route = useRoute()
 const userStore = useUserStore()
 
@@ -190,7 +194,7 @@ const submitNote = ref('')
 const isSubmitting = ref(false)
 
 const mapQuestionType = (type: string) => {
-  return type === 'choice' ? '选择题' : type === 'judge' ? '判断题' : type
+  return type === 'choice' ? t('hw_detail.choice') : type === 'judge' ? t('hw_detail.judge') : type === 'blank' ? t('hw_detail.blank') : type
 }
 
 const getStatusType = (status: string) => {
@@ -209,11 +213,11 @@ const getStatusType = (status: string) => {
 const getStatusLabel = (status: string) => {
   switch (status) {
     case 'ASSIGNED':
-      return '未提交'
+      return t('hw_detail.assigned')
     case 'SUBMITTED':
-      return '已提交'
+      return t('hw_detail.submitted')
     case 'REVIEWED':
-      return '已批改'
+      return t('hw_detail.reviewed')
     default:
       return status
   }
@@ -236,7 +240,7 @@ const goBack = () => {
 const loadHomeworkDetail = async () => {
   const homeworkId = (props.assignmentId || route.query.id) as string
   if (!homeworkId) {
-    ElMessage.error('缺少作业ID参数')
+    ElMessage.error(t('hw_detail.miss_id'))
     if (props.inDashboard) emit('back')
     else router.back()
     return
@@ -251,7 +255,7 @@ const loadHomeworkDetail = async () => {
       const data = response.data
       Object.assign(homework, data)
 
-      // 如果已提交，加载已提交的答案
+      // 如果已提交，加载已提交's answers
       if (data.currentAssignment?.answers) {
         for (const ans of data.currentAssignment.answers) {
           studentAnswers[ans.questionIndex] = ans.answer
@@ -260,22 +264,22 @@ const loadHomeworkDetail = async () => {
 
       console.log('【调试】作业已加载')
     } else {
-      ElMessage.error(response.message || '加载作业失败')
+      ElMessage.error(response.message || t('hw_detail.load_fail'))
     }
   } catch (error: any) {
-    console.error('【调试】加载作业失败:', error)
-    ElMessage.error(`加载失败: ${error.message}`)
+    console.error('【调试】Failed to load homework:', error)
+    ElMessage.error(error.message || t('hw_detail.net_fail'))
   }
 }
 
 const submitHomework = async () => {
-  // 检查是否所有题目都已回答
+  // 检查是否所有questions目都已回答
   const emptyQuestions = homework.content
     .map((q: any, idx: number) => !studentAnswers[idx] ? idx + 1 : null)
     .filter((x: any) => x !== null)
 
   if (emptyQuestions.length > 0) {
-    ElMessage.warning(`请完成第 ${emptyQuestions.join('、')} 题`)
+    ElMessage.warning(t('hw_detail.miss_q', { nums: emptyQuestions.join(', ') }))
     return
   }
 
@@ -296,16 +300,17 @@ const submitHomework = async () => {
     console.log('【调试】提交响应:', response)
 
     if (response.code === 0) {
-      ElMessage.success('答案提交成功！')
-      homework.assignmentStatus = 'SUBMITTED'
+      ElMessage.success(t('hw_detail.sub_success'))
+      homework.assignmentStatus = response.data?.status || 'REVIEWED'
+      // 覆盖提交后的 currentAssignment 数据（包含 AI 批改的结果）
       homework.currentAssignment = response.data
-      console.log('【调试】作业状态已更新为已提交')
+      console.log('【调试】作业此时Status已更新为:', homework.assignmentStatus)
     } else {
-      ElMessage.error(response.message || '提交失败')
+      ElMessage.error(response.message || t('hw_detail.sub_fail'))
     }
   } catch (error: any) {
     console.error('【调试】提交答案失败:', error)
-    ElMessage.error(`提交失败: ${error.message}`)
+    ElMessage.error(error.message || t('hw_detail.sub_fail'))
   } finally {
     isSubmitting.value = false
   }
@@ -313,7 +318,7 @@ const submitHomework = async () => {
 
 onMounted(() => {
   if (!userStore.isLoggedIn) {
-    ElMessage.warning('请先登录')
+    ElMessage.warning(t('hw_detail.login_req'))
     router.push('/login')
     return
   }

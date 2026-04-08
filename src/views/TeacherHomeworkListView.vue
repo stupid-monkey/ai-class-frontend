@@ -1,73 +1,73 @@
 <template>
   <el-container class="homework-list-container">
     <el-header class="top-header">
-      <el-button v-if="!inDashboard" type="primary" link icon="ArrowLeft" @click="goBack">← 返回</el-button>
-      <span class="page-title">📋 作业批改列表</span>
+      <el-button v-if="!inDashboard" type="primary" link icon="ArrowLeft" @click="goBack">← Back</el-button>
+      <span class="page-title">📋 Grade Assignments List</span>
       <span></span>
     </el-header>
 
     <el-main class="main-content">
-      <!-- 选项卡：待批改 / 已批改 -->
+      <!-- 选项卡：Pending / Reviewed -->
       <el-tabs v-model="activeTab" @tab-change="changeTab">
-        <el-tab-pane label="待批改（未评分）" name="pending">
+        <el-tab-pane label="Pending" name="pending">
           <el-alert 
             v-if="allAssignments.length > 0"
-            :title="`📋 提示：共加载 ${allAssignments.length} 个作业，待批改 ${pendingAssignments.length} 条`"
+            :title="`📋 Notice：Loaded ${allAssignments.length} assignments, Pending ${pendingAssignments.length} items`"
             type="info"
             style="margin-bottom: 20px;"
           />
           <div v-if="pendingAssignments.length === 0" style="text-align: center; padding: 40px;">
-            <el-empty description="暂无待批改的作业" />
+            <el-empty description="No pending assignments" />
           </div>
           <el-table v-else :data="pendingAssignments" border style="width: 100%">
-            <el-table-column prop="knowledge" label="知识点" width="200" />
-            <el-table-column prop="studentName" label="学生名称" width="120" />
-            <el-table-column prop="submittedAt" label="提交时间" width="180">
+            <el-table-column prop="knowledge" label="Knowledge Point" width="200" />
+            <el-table-column prop="studentName" label="Student Name" width="120" />
+            <el-table-column prop="submittedAt" label="Submission Time" width="180">
               <template #default="{ row }">
                 {{ formatTime(row.submittedAt) }}
               </template>
             </el-table-column>
-            <el-table-column prop="difficulty" label="难度" width="100">
+            <el-table-column prop="difficulty" label="Difficulty" width="100">
               <template #default="{ row }">
                 <el-tag :type="getDifficultyType(row.difficulty)">
-                  {{ row.difficulty === 'easy' ? '简单' : row.difficulty === 'medium' ? '中等' : '困难' }}
+                  {{ row.difficulty === 'easy' ? 'Easy' : row.difficulty === 'medium' ? 'Medium' : 'Hard' }}
                 </el-tag>
               </template>
             </el-table-column>
-            <el-table-column prop="questionCount" label="题数" width="80" />
-            <el-table-column label="操作" width="120" fixed="right">
+            <el-table-column prop="questionCount" label="Question Count" width="120" />
+            <el-table-column label="Action" min-width="160" fixed="right">
               <template #default="{ row }">
                 <el-button 
                   type="primary" 
                   size="small"
                   @click="goToGrading(row)"
                 >
-                  编辑批改 →
+                  Review & Grade →
                 </el-button>
               </template>
             </el-table-column>
           </el-table>
         </el-tab-pane>
 
-        <el-tab-pane label="已批改（已评分）" name="reviewed">
+        <el-tab-pane label="Reviewed" name="reviewed">
           <div v-if="reviewedAssignments.length === 0" style="text-align: center; padding: 40px;">
-            <el-empty description="暂无已批改的作业" />
+            <el-empty description="No reviewed assignments" />
           </div>
           <el-table v-else :data="reviewedAssignments" border style="width: 100%">
-            <el-table-column prop="knowledge" label="知识点" width="200" />
-            <el-table-column prop="studentName" label="学生名称" width="120" />
-            <el-table-column prop="score" label="分数" width="100" />
-            <el-table-column prop="submittedAt" label="提交时间" width="180">
+            <el-table-column prop="knowledge" label="Knowledge Point" width="200" />
+            <el-table-column prop="studentName" label="Student Name" width="120" />
+            <el-table-column prop="score" label="Score" width="100" />
+            <el-table-column prop="submittedAt" label="Submission Time" width="180">
               <template #default="{ row }">
                 {{ formatTime(row.submittedAt) }}
               </template>
             </el-table-column>
-            <el-table-column prop="reviewedAt" label="批改时间" width="180">
+            <el-table-column prop="reviewedAt" label="Grading Time" width="180">
               <template #default="{ row }">
                 {{ formatTime(row.reviewedAt) }}
               </template>
             </el-table-column>
-            <el-table-column label="操作" width="120" fixed="right">
+            <el-table-column label="Action" min-width="160" fixed="right">
               <template #default="{ row }">
                 <el-button 
                   type="primary" 
@@ -75,7 +75,7 @@
                   size="small"
                   @click="goToGrading(row)"
                 >
-                  查看 / 修改 →
+                  View / Edit →
                 </el-button>
               </template>
             </el-table-column>
@@ -135,7 +135,7 @@ const pendingAssignments = computed(() => {
     }
   })
   
-  console.log('【调试】待批改作业总数:', result.length)
+  console.log('【Debug】PendingTotal assignments:', result.length)
   return result
 })
 
@@ -162,20 +162,20 @@ const reviewedAssignments = computed(() => {
     }
   })
   
-  console.log('【调试】已批改作业总数:', result.length)
+  console.log('【Debug】ReviewedTotal assignments:', result.length)
   return result
 })
 
 const changeTab = () => {
-  console.log('【调试】切换选项卡至:', activeTab.value)
+  console.log('【Debug】Switch tab to:', activeTab.value)
 }
 
 const goToGrading = (assignment: any) => {
-  console.log('【调试】点击编辑批改，assignment 对象:', JSON.stringify(assignment, null, 2))
-  console.log('【调试】homeworkId:', assignment.homeworkId, 'studentId:', assignment.studentId)
+  console.log('【Debug】Click to grade，assignment Object:', JSON.stringify(assignment, null, 2))
+  console.log('【Debug】homeworkId:', assignment.homeworkId, 'studentId:', assignment.studentId)
   
   if (!assignment.homeworkId || !assignment.studentId) {
-    ElMessage.error('数据不完整: homeworkId=' + assignment.homeworkId + ', studentId=' + assignment.studentId)
+    ElMessage.error('Incomplete data: homeworkId=' + assignment.homeworkId + ', studentId=' + assignment.studentId)
     return
   }
   
@@ -199,25 +199,25 @@ const goBack = () => {
 const loadHomeworkList = async () => {
   isLoading.value = true
   try {
-    console.log('【调试】调用新API：GET /api/homework/teacher/published')
+    console.log('【Debug】Calling newAPI：GET /api/homework/teacher/published')
     const response = await getTeacherPublishedHomeworkApi() as any
-    console.log('【调试】教师已发布作业列表响应:', response)
+    console.log('【Debug】Teacher published HW response:', response)
 
     if (response.code === 0 && response.data) {
       const rawData = response.data
       
-      // rawData 应该是作业数组，每个作业已经包含 pendingAssignments 和 reviewedAssignments
+      // rawData should be assignment array，each includes pendingAssignments and reviewedAssignments
       if (!Array.isArray(rawData)) {
-        console.log('【调试】响应数据不是数组')
+        console.log('【Debug】Response is not array')
         allAssignments.value = Array.isArray(rawData) ? rawData : [rawData]
       } else {
         allAssignments.value = rawData
       }
       
-      console.log('【调试】加载完成:')
-      console.log('  - 全部作业数:', allAssignments.value.length)
+      console.log('【Debug】Load complete:')
+      console.log('  - Total assignments:', allAssignments.value.length)
       
-      // 计算合计数据用于调试
+      // Calculate totals for debug
       let totalPending = 0
       let totalReviewed = 0
       
@@ -227,21 +227,21 @@ const loadHomeworkList = async () => {
         totalPending += pending
         totalReviewed += reviewed
         
-        console.log(`  - 作业 ${idx} (${hw.knowledge}): 待批改${pending}条, 已批改${reviewed}条`)
+        console.log(`  - Assignments ${idx} (${hw.knowledge}): Pending${pending}items, Reviewed${reviewed}items`)
       })
       
-      console.log(`【调试】总计: 待批改${totalPending}条, 已批改${totalReviewed}条`)
+      console.log(`【Debug】Total: Pending${totalPending}items, Reviewed${totalReviewed}items`)
       
       if (allAssignments.value.length === 0) {
-        ElMessage.info('暂无作业数据')
+        ElMessage.info('No homework data')
       }
     } else {
-      console.log('【调试】API 返回错误或数据为空')
-      ElMessage.error(response.message || '加载作业列表失败')
+      console.log('【Debug】API Error or empty')
+      ElMessage.error(response.message || 'Failed to load list')
     }
   } catch (error: any) {
-    console.error('【调试】加载作业列表异常:', error)
-    ElMessage.error('加载作业列表失败: ' + (error.message || '请重试'))
+    console.error('【Debug】Exception loading list:', error)
+    ElMessage.error('Failed to load list: ' + (error.message || 'Please try again'))
   } finally {
     isLoading.value = false
   }
@@ -254,7 +254,7 @@ onMounted(() => {
   }
   
   if (!userStore.isTeacher) {
-    ElMessage.error('只有教师可以访问批改页面')
+    ElMessage.error('Only teachers can access grading')
     router.back()
     return
   }

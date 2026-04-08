@@ -55,8 +55,7 @@ export function uploadFile<T>(
   //   debugFormData(formData) 
   return service.post(baseURL + url, formData, {
     params,
-    headers: { 'Content-Type': 'multipart/form-data' }
-    //  headers: {  }
+    // Content-Type 会由 interceptor 自动置空并由浏览器处理 boundary
   });
 }
 

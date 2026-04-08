@@ -73,18 +73,18 @@
           </button>
         </div>
 
-        <!-- 错误提示 -->
+        <!-- 错误Notice -->
         <div v-if="submitError" class="alert alert-error">
           {{ submitError }}
         </div>
 
-        <!-- 成功提示 -->
+        <!-- 成功Notice -->
         <div v-if="submitSuccess" class="alert alert-success">
           {{ submitSuccess }}
         </div>
       </form>
 
-      <!-- 首次登录提示 -->
+      <!-- 首次登录Notice -->
       <div v-if="isFirstLogin" class="first-login-tips">
         <h3>密码设置指南</h3>
         <ul>
@@ -125,7 +125,7 @@ const errors = ref({
   confirmPassword: ''
 })
 
-// 提交状态
+// 提交Status
 const loading = ref(false)
 const submitError = ref('')
 const submitSuccess = ref('')
@@ -235,9 +235,9 @@ const handleChangePassword = async () => {
     
     submitSuccess.value = '密码修改成功！请重新登录'
     
-    // 3秒后清除登录状态并跳转到登录页
+    // 3秒后清除登录Status并跳转到登录页
     setTimeout(() => {
-      // 清除用户登录状态
+      // 清除用户登录Status
       userStore.logout()
       // 跳转到登录页面，使用新密码重新登录
       router.push('/login')

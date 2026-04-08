@@ -1,15 +1,15 @@
 <template>
   <el-container class="dashboard-container">
     <el-aside width="240px" class="sidebar">
-      <div class="logo">🚀 AI 课堂控制台</div>
+      <div class="logo">{{ $t('dashboard.logo') }}</div>
       
       <div class="role-switch">
-        <span>当前身份: </span>
+        <span>{{ $t('dashboard.currentRole') }} </span>
         <el-tag :type="isTeacher ? 'primary' : 'success'" style="cursor: default;" size="large">
-          {{ isTeacher ? '👨‍🏫 教师' : '👨‍🎓 学生' }}
+          {{ isTeacher ? '👨‍🏫 ' + $t('dashboard.teacher') : '👨‍🎓 ' + $t('dashboard.student') }}
         </el-tag>
         <div v-if="userStore.userInfo" style="margin-top: 8px; font-size: 12px; color: #409EFF;">
-          当前登录: {{ userStore.userInfo.name }} (ID: {{ userStore.userInfo.id }})
+          {{ userStore.userInfo.name }} (ID: {{ userStore.userInfo.id }})
         </div>
       </div>
 
@@ -21,21 +21,21 @@
       >
         <el-sub-menu index="ai-group">
           <template #title>
-            <span> AI 课堂助手</span>
+            <span> {{ $t('dashboard.aiAssistant') }}</span>
           </template>
-          <el-menu-item index="ai-qa">AI 问答</el-menu-item>
-          <el-menu-item index="ai-ppt" v-if="isTeacher"> PPT 生成</el-menu-item>
-          <el-menu-item index="ai-homework" v-if="isTeacher"> 课堂作业（出题）</el-menu-item>
-          <el-menu-item index="teacher-grading" v-if="isTeacher"> 作业批改</el-menu-item>
-          <el-menu-item index="student-homework" v-if="!isTeacher"> 我的作业</el-menu-item>
+          <el-menu-item index="ai-qa">{{ $t('dashboard.aiQa') }}</el-menu-item>
+          <el-menu-item index="ai-ppt" v-if="isTeacher"> {{ $t('dashboard.aiPpt') }}</el-menu-item>
+          <el-menu-item index="ai-homework" v-if="isTeacher"> {{ $t('dashboard.aiHomework') }}</el-menu-item>
+          <el-menu-item index="teacher-grading" v-if="isTeacher"> {{ $t('dashboard.teacherGrading') }}</el-menu-item>
+          <el-menu-item index="student-homework" v-if="!isTeacher"> {{ $t('dashboard.studentHomework') }}</el-menu-item>
         </el-sub-menu>
 
         <el-sub-menu index="file-group">
           <template #title>
-            <span> 文件资料</span>
+            <span> {{ $t('dashboard.fileMaterials') }}</span>
           </template>
-          <el-menu-item index="file-public"> 公开文件资料</el-menu-item>
-          <el-menu-item index="file-private" v-if="isTeacher"> 教师个人资料</el-menu-item>
+          <el-menu-item index="file-public"> {{ $t('dashboard.publicFiles') }}</el-menu-item>
+          <el-menu-item index="file-private" v-if="isTeacher"> {{ $t('dashboard.privateFiles') }}</el-menu-item>
         </el-sub-menu>
       </el-menu>
     </el-aside>
@@ -43,17 +43,31 @@
     <el-container>
       <el-header class="top-header">
         <span class="page-title">{{ pageTitle }}</span>
-        <div style="display: flex; gap: 10px; align-items: center;">
+        <div style="display: flex; gap: 15px; align-items: center;">
+          <!-- Language Switcher -->
+          <el-dropdown trigger="click" @command="handleLanguageChange">
+            <span style="font-size: 14px; cursor: pointer; display: flex; align-items: center; gap: 4px;">
+              {{ $t('common.language') }} <el-icon style="font-size: 12px;"><arrow-down /></el-icon>
+            </span>
+            <template #dropdown>
+              <el-dropdown-menu>
+                <el-dropdown-item command="en" :disabled="locale === 'en'">English</el-dropdown-item>
+                <el-dropdown-item command="zh" :disabled="locale === 'zh'">简体中文</el-dropdown-item>
+              </el-dropdown-menu>
+            </template>
+          </el-dropdown>
+
+          <!-- User Menu -->
           <el-dropdown trigger="click" @command="handleUserMenuCommand">
-            <span style="font-size: 12px; color: #909399; cursor: pointer; display: flex; align-items: center; gap: 4px;">
+            <span style="font-size: 14px; cursor: pointer; display: flex; align-items: center; gap: 4px;">
               {{ userStore.userInfo?.name }}
               <el-icon style="font-size: 12px;"><arrow-down /></el-icon>
             </span>
             <template #dropdown>
               <el-dropdown-menu>
-                <el-dropdown-item command="changePassword">🔐 修改密码</el-dropdown-item>
+                <el-dropdown-item command="changePassword">🔐 {{ $t('dashboard.changePwd') }}</el-dropdown-item>
                 <el-dropdown-divider />
-                <el-dropdown-item command="logout">🚪 退出登录</el-dropdown-item>
+                <el-dropdown-item command="logout">🚪 {{ $t('dashboard.logout') }}</el-dropdown-item>
               </el-dropdown-menu>
             </template>
           </el-dropdown>
@@ -66,14 +80,14 @@
         <div v-if="activeMenu === 'ai-qa'" class="page-section qa-container">
           <div class="chat-window" ref="chatWindowRef">
             <div v-for="(msg, index) in chatList" :key="index" :class="['chat-msg', msg.role === 'user' ? 'user' : 'ai']">
-              <div class="avatar">{{ msg.role === 'user' ? '我' : 'AI' }}</div>
-              <div class="msg-bubble">{{ msg.content }}</div>
+              <div class="avatar">{{ msg.role === 'user' ? 'me' : 'AI' }}</div>
+              <div class="msg-bubble">{{ msg.role === 'ai' && (msg.content.includes('你好！我是 AI') || msg.content.includes('Hello! I am the AI')) ? $t('dashboard_mod.aiGreeting') : msg.content }}</div>
             </div>
           </div>
           <div class="input-area">
             <el-input 
               v-model="inputMsg" 
-              placeholder="向 AI 提问任何关于课程、知识点的问题..." 
+              :placeholder="$t('dashboard_mod.askQuestionPlaceholder')" 
               size="large"
               @keyup.enter="!chatLoading && sendMessage()"
               :disabled="chatLoading"
@@ -85,7 +99,7 @@
                   :loading="chatLoading"
                   :disabled="chatLoading"
                 >
-                  {{ chatLoading ? '思考中...' : '发送' }}
+                  {{ chatLoading ? $t('dashboard_mod.thinking') : $t('dashboard_mod.send') }}
                 </el-button>
               </template>
             </el-input>
@@ -98,17 +112,17 @@
             <el-row :gutter="40">
               <el-col :span="8">
                 <el-form label-position="top">
-                  <el-form-item label="PPT 主题/大纲">
-                    <el-input v-model="pptForm.topic" type="textarea" :rows="4" placeholder="例如：高中物理《牛顿第二定律》教学课件..." />
+                  <el-form-item :label="$t('dashboard_mod.pptTopic')">
+                    <el-input v-model="pptForm.topic" type="textarea" :rows="4" :placeholder="$t('dashboard_mod.pptPlaceholder')" />
                   </el-form-item>
-                  <el-form-item label="期望页数">
+                  <el-form-item :label="$t('dashboard_mod.expectedPages')">
                     <el-slider v-model="pptForm.pages" :min="5" :max="30" show-input />
                   </el-form-item>
-                  <el-form-item label="设计风格">
-                    <el-select v-model="pptForm.style" placeholder="选择风格" style="width: 100%;">
-                      <el-option label="学术简约" value="simple" />
-                      <el-option label="活泼卡通" value="cartoon" />
-                      <el-option label="科技炫酷" value="tech" />
+                  <el-form-item :label="$t('dashboard_mod.designStyle')">
+                    <el-select v-model="pptForm.style" :placeholder="$t('dashboard_mod.selectStyle')" style="width: 100%;">
+                      <el-option :label="$t('dashboard_mod.styleAcademic')" value="simple" />
+                      <el-option :label="$t('dashboard_mod.styleCartoon')" value="cartoon" />
+                      <el-option :label="$t('dashboard_mod.styleTech')" value="tech" />
                     </el-select>
                   </el-form-item>
                   <el-button 
@@ -119,27 +133,27 @@
                     :loading="pptLoading"
                     :disabled="pptLoading"
                   >
-                    {{ pptLoading ? '⏳ 正在生成中...' : '🚀 一键生成 PPT' }}
+                    {{ pptLoading ? '⏳ ' + $t('dashboard_mod.generating') : '🚀 ' + $t('dashboard_mod.generatePptBtn') }}
                   </el-button>
                 </el-form>
               </el-col>
               <el-col :span="16">
-                <!-- 生成成功结果展示 -->
+                <!-- {{ $t('dashboard_mod.pptSuccessTitle') }} -->
                 <div v-if="pptResultUrl" class="preview-box" style="background-color: #ffffff; padding: 15px; border-radius: 4px; border: 1px solid #e1f3d8; height: 100%; display: flex; flex-direction: column;">
                   <div style="margin-bottom: 10px; padding: 15px; background: #f0f9eb; border-radius: 4px;">
                     <div style="color: #67C23A; font-size: 18px; font-weight: bold; margin-bottom: 8px;">
-                      <el-icon><CircleCheckFilled /></el-icon> PPT 生成成功！
+                      <el-icon><CircleCheckFilled /></el-icon> PPT generation successful!
                     </div>
                     <div style="font-size: 14px; color: #606266; margin-bottom: 15px;">
-                      您的 PPT 已经准备就绪。由于网络安全限制，部分内网生成文件（如本地 9000 端口）无法直接通过外部 Office 服务预览，如果下方预览框出错呈现 "An error occurred"，请直接点击下载按钮在本地打开预览。
+                      {{ $t('dashboard_mod.pptReady') }}。{{ $t('dashboard_mod.secLimitText') }}，{{ $t('dashboard_mod.intranetFilesText') }}（{{ $t('dashboard_mod.likeLocalText') }} 9000 端口）无法直接通过外部 Office 服务{{ $t('dashboard_mod.preview') }}，如果下方{{ $t('dashboard_mod.preview') }}框出错呈现 "An error occurred"，请直接点击{{ $t('dashboard_mod.download') }}按钮在本地打开{{ $t('dashboard_mod.preview') }}。
                     </div>
                     <div style="display: flex; gap: 10px;">
                       <a :href="pptResultUrl" target="_blank" style="text-decoration: none;">
-                        <el-button type="success" size="large"><el-icon style="margin-right: 4px"><Download /></el-icon>直接下载 PPT</el-button>
+                        <el-button type="success" size="large"><el-icon style="margin-right: 4px"><Download /></el-icon>{{ $t('dashboard_mod.downloadPptBtn') }}</el-button>
                       </a>
                     </div>
                   </div>
-                  <!-- 使用微软 Office Online 预览 -->
+                  <!-- 使用微软 Office Online {{ $t('dashboard_mod.preview') }} -->
                   <div style="flex-grow: 1; border: 1px solid #dcdfe6; position: relative;">
                     <iframe 
                       v-if="pptPreviewUrl"
@@ -152,9 +166,9 @@
                   </div>
                 </div>
 
-                <!-- 处理中状态 -->
+                <!-- 处理中Status -->
                 <div v-else-if="pptTaskStatus === 'PROCESSING' || pptTaskStatus === 'SUBMITTED'" class="preview-box" style="display: flex; align-items: center; justify-content: center; height: 100%; min-height: 400px;">
-                  <el-result icon="info" title="PPT 生成状态">
+                  <el-result icon="info" title="PPT 生成Status">
                      <template #sub-title>
                         <div style="display:flex; flex-direction: column; align-items: center; gap: 10px;">
                            <el-icon class="is-loading" :size="30"><Loading /></el-icon>
@@ -166,12 +180,12 @@
 
                 <!-- 大纲展示 -->
                 <div v-else-if="pptOutline" class="preview-box" style="background-color: #ffffff; padding: 15px; border-radius: 4px; border: 1px solid #dcdfe6; overflow-y: auto;">
-                  <div style="margin-bottom: 10px; color: #409EFF; font-weight: bold;">📄 PPT 大纲预览 ({{ pptPagesCount }} 页)</div>
+                  <div style="margin-bottom: 10px; color: #409EFF; font-weight: bold;">📄 PPT outline ({{ pptPagesCount }} 页)</div>
                   <el-text style="white-space: pre-wrap;">{{ pptOutline }}</el-text>
                 </div>
 
                 <div v-else class="preview-box">
-                  <el-empty description="暂无预览，请先在左侧输入信息并生成" />
+                  <el-empty :description="$t('dashboard_mod.noPreviewText')" />
                 </div>
               </el-col>
             </el-row>
@@ -184,31 +198,57 @@
             <el-col :span="8">
               <el-card shadow="never">
                 <template #header>
-                  <span style="font-weight: bold;">✨ AI 智能出题</span>
+                  <span style="font-weight: bold;">✨ {{ $t('dashboard_mod.aiQuestionsTitle') }}</span>
                 </template>
                 <el-form label-position="top">
-                  <el-form-item label="考察知识点">
+                  <el-form-item :label="$t('dashboard_mod.additionalPrompt') || 'Additional Prompt'">
+                    <el-input 
+                      v-model="hwForm.prompt" 
+                      type="textarea" 
+                      :rows="2" 
+                      placeholder="Optional, can be used to constrain the style, scenario, and expression of the question" 
+                    />
+                  </el-form-item>
+                  <el-form-item :label="$t('dashboard_mod.referenceFile') || 'Reference File'">
+                    <el-upload
+                      class="upload-demo"
+                      action="#"
+                      :auto-upload="false"
+                      :limit="1"
+                      accept=".txt,.md,.csv,.docx,.json,.xml,.html,.yaml,.pdf"
+                      :on-change="handleFileChange"
+                      v-model:file-list="hwForm.fileList"
+                    >
+                      <el-button type="primary">Select File</el-button>
+                      <template #tip>
+                        <div class="el-upload__tip">
+                          Supports txt, md, csv, docx, pdf etc., not exceeding 100MB
+                        </div>
+                      </template>
+                    </el-upload>
+                  </el-form-item>
+                  <el-form-item :label="$t('dashboard_mod.knowledgePoints')">
                     <el-input 
                       v-model="hwForm.knowledge" 
                       type="textarea" 
                       :rows="3" 
-                      placeholder="例如：唐诗三百首、李白生平..." 
+                      :placeholder="$t('dashboard_mod.pointsPlaceholder')" 
                     />
                   </el-form-item>
-                  <el-form-item label="题目难度">
+                  <el-form-item :label="$t('dashboard_mod.difficulty')">
                     <el-radio-group v-model="hwForm.difficulty">
-                      <el-radio-button label="easy">简单</el-radio-button>
-                      <el-radio-button label="medium">中等</el-radio-button>
-                      <el-radio-button label="hard">困难</el-radio-button>
+                      <el-radio-button label="easy">{{ $t('dashboard_mod.diffEasy') }}</el-radio-button>
+                      <el-radio-button label="medium">{{ $t('dashboard_mod.diffMedium') }}</el-radio-button>
+                      <el-radio-button label="hard">{{ $t('dashboard_mod.diffHard') }}</el-radio-button>
                     </el-radio-group>
                   </el-form-item>
-                  <el-form-item label="题型包含">
+                  <el-form-item :label="$t('dashboard_mod.questionTypes')">
                     <el-checkbox-group v-model="hwForm.types">
-                      <el-checkbox label="choice">选择题</el-checkbox>
-                      <el-checkbox label="judge">判断题</el-checkbox>
+                      <el-checkbox label="choice">{{ $t('dashboard_mod.typeChoice') }}</el-checkbox>
+                      <el-checkbox label="judge">{{ $t('dashboard_mod.typeTrueFalse') }}</el-checkbox>
                     </el-checkbox-group>
                   </el-form-item>
-                  <el-form-item label="题目数量">
+                  <el-form-item :label="$t('dashboard_mod.questionCount')">
                     <el-input-number 
                       v-model="hwForm.questionCount" 
                       :min="1" 
@@ -223,7 +263,7 @@
                     :loading="hwLoading"
                     :disabled="hwLoading"
                   >
-                    {{ hwLoading ? `⏳ 正在处理 (${hwLoadingTime}s)` : '💡 智能出题' }}
+                    {{ hwLoading ? `⏳ Processing (${hwLoadingTime}s)` : '💡 ' + $t('dashboard_mod.generateQuestionsBtn') }}
                   </el-button>
                 </el-form>
               </el-card>
@@ -232,25 +272,25 @@
               <el-card shadow="hover">
                 <template #header>
                   <div style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
-                    <span>生成的作业预览 ({{ hwGeneratedQuestions.length }} 题)</span>
+                    <span>{{ $t('dashboard_mod.generatedPreview') }} ({{ hwGeneratedQuestions.length }} questions)</span>
                     <el-button 
                       type="primary" 
                       @click="publishHomework"
                       :loading="hwPublishing"
                       :disabled="hwGeneratedQuestions.length === 0 || hwPublishing"
                     >
-                      {{ hwPublishing ? '发布中...' : '📤 发布作业' }}
+                      {{ hwPublishing ? $t('dashboard_mod.publishAction') + '中...' : '📤 ' + $t('dashboard_mod.publishHomeworkBtn') }}
                     </el-button>
                   </div>
                 </template>
                 <div v-if="hwGeneratedQuestions.length === 0" style="text-align: center; padding: 40px;">
-                  <el-empty description="暂无题目，请先在左侧生成题目" />
+                  <el-empty :description="$t('dashboard_mod.noQuestionsText')" />
                 </div>
                 <div v-else class="hw-content">
                   <div v-for="(question, idx) in hwGeneratedQuestions" :key="idx" class="hw-question">
                     <div class="question-header">
                       <span class="question-no">{{ idx + 1 }}</span>
-                      <span class="question-type">{{ question.type === 'choice' ? '选择题' : '判断题' }}</span>
+                      <span class="question-type">{{ question.type === 'choice' ? $t('dashboard_mod.typeChoice') : $t('dashboard_mod.typeTrueFalse') }}</span>
                     </div>
                     <div class="question-text">{{ question.question }}</div>
                     <div v-if="question.options && question.options.length" class="options">
@@ -258,8 +298,8 @@
                         {{ option }}
                       </div>
                     </div>
-                    <div class="answer"><strong>答案:</strong> {{ question.answer }}</div>
-                    <div v-if="question.explanation" class="explanation"><strong>解析:</strong> {{ question.explanation }}</div>
+                    <div class="answer"><strong>{{ $t('dashboard_mod.answerLabel') }}</strong> {{ question.answer }}</div>
+                    <div v-if="question.explanation" class="explanation"><strong>{{ $t('dashboard_mod.explanationLabel') }}</strong> {{ question.explanation }}</div>
                     <el-divider />
                   </div>
                 </div>
@@ -302,17 +342,19 @@
           <el-card shadow="never">
             <template #header>
               <div style="display: flex; justify-content: space-between;">
-                <span>全班共享的学习资料（所有人可见）</span>
+                <span>{{ $t('dashboard_mod.publicFilesDesc') }}</span>
               </div>
             </template>
             <el-table :data="publicFiles" border style="width: 100%" v-loading="loadingFiles">
-              <el-table-column prop="originalFilename" label="文件名" />
-              <el-table-column prop="category" label="分类" width="120" />
-              <el-table-column prop="publishTime" label="发布日期" width="180" />
-              <el-table-column label="操作" width="140">
+              <el-table-column prop="originalFilename" :label="$t('dashboard_mod.fileName')" />
+              <el-table-column prop="category" :label="$t('dashboard_mod.category')" width="120" />
+              <el-table-column prop="publishTime" :label="$t('dashboard_mod.publishDate')" width="180" />
+              <el-table-column :label="$t('dashboard_mod.operation')" min-width="160">
                 <template #default="{ row }">
-                  <el-button link type="primary" size="small" @click="previewFile(row)">预览</el-button>
-                  <el-button link type="primary" size="small" @click="downloadFile(row)" v-if="row.allowDownload !== false" :loading="downloadingIds.includes(row.resourceId)" :disabled="downloadingIds.includes(row.resourceId)">下载</el-button>
+                  <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+                    <el-button link type="primary" size="small" @click="previewFile(row)" style="margin-left: 0;">{{ $t('dashboard_mod.preview') }}</el-button>
+                    <el-button link type="primary" size="small" @click="downloadFile(row)" v-if="row.allowDownload !== false" :loading="downloadingIds.includes(row.resourceId)" :disabled="downloadingIds.includes(row.resourceId)" style="margin-left: 0;">{{ $t('dashboard_mod.download') }}</el-button>
+                  </div>
                 </template>
               </el-table-column>
             </el-table>
@@ -324,28 +366,30 @@
           <el-card shadow="never" style="background-color: #fafafa;">
             <template #header>
               <div style="display: flex; justify-content: space-between;">
-                <span style="color: #F56C6C; font-weight: bold;">我的课程资源（包含全部已上传文件）</span>
-                <el-button type="primary" size="small" @click="openUploadDialog">上传新资料</el-button>
+                <span style="color: #F56C6C; font-weight: bold;">{{ $t('dashboard_mod.privateFilesDesc') }}</span>
+                <el-button type="primary" size="small" @click="openUploadDialog">{{ $t('dashboard_mod.uploadMaterialBtn') }}</el-button>
               </div>
             </template>
             <el-table :data="privateFiles" border style="width: 100%" v-loading="loadingFiles">
-              <el-table-column prop="originalFilename" label="资源名称" />
-              <el-table-column prop="category" label="分类" width="100" />
-              <el-table-column label="发布状态" width="100">
+              <el-table-column prop="originalFilename" :label="$t('dashboard_mod.resourceName')" />
+              <el-table-column prop="category" :label="$t('dashboard_mod.category')" width="100" />
+              <el-table-column :label="$t('dashboard_mod.publishStatus')" width="100">
                 <template #default="{ row }">
                   <el-tag :type="row.publishStatus === 'PUBLISHED' ? 'success' : (row.publishStatus === 'REVOKED' ? 'danger' : 'info')">
-                    {{ row.publishStatus === 'PUBLISHED' ? '已发布' : (row.publishStatus === 'REVOKED' ? '已撤回' : '未发布') }}
+                    {{ row.publishStatus === 'PUBLISHED' ? $t('dashboard_mod.statusPublished') : (row.publishStatus === 'REVOKED' ? $t('dashboard_mod.statusRevoked') : $t('dashboard_mod.statusUnpublished')) }}
                   </el-tag>
                 </template>
               </el-table-column>
-              <el-table-column prop="createTime" label="创建日期" width="160" />
-              <el-table-column label="操作" width="240" fixed="right">
+              <el-table-column prop="createTime" :label="$t('dashboard_mod.createDate')" width="160" />
+              <el-table-column :label="$t('dashboard_mod.operation')" min-width="260" fixed="right">
                 <template #default="{ row }">
-                  <el-button link type="primary" size="small" @click="previewFile(row)">预览</el-button>
-                  <el-button link type="primary" size="small" @click="downloadFile(row)" :loading="downloadingIds.includes(row.resourceId)" :disabled="downloadingIds.includes(row.resourceId)">下载</el-button>
-                  <el-button link type="success" size="small" v-if="row.publishStatus !== 'PUBLISHED'" @click="publishFile(row)">发布</el-button>
-                  <el-button link type="warning" size="small" v-if="row.publishStatus === 'PUBLISHED'" @click="revokeFile(row)">撤回</el-button>
-                  <el-button link type="danger" size="small" @click="deleteFile(row)">删除</el-button>
+                  <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+                    <el-button link type="primary" size="small" @click="previewFile(row)" style="margin-left: 0;">{{ $t('dashboard_mod.preview') }}</el-button>
+                    <el-button link type="primary" size="small" @click="downloadFile(row)" :loading="downloadingIds.includes(row.resourceId)" :disabled="downloadingIds.includes(row.resourceId)" style="margin-left: 0;">{{ $t('dashboard_mod.download') }}</el-button>
+                    <el-button link type="success" size="small" v-if="row.publishStatus !== 'PUBLISHED'" @click="publishFile(row)" style="margin-left: 0;">{{ $t('dashboard_mod.publishAction') }}</el-button>
+                    <el-button link type="warning" size="small" v-if="row.publishStatus === 'PUBLISHED'" @click="revokeFile(row)" style="margin-left: 0;">{{ $t('dashboard_mod.revokeAction') }}</el-button>
+                    <el-button link type="danger" size="small" @click="deleteFile(row)" style="margin-left: 0;">{{ $t('dashboard_mod.deleteAction') }}</el-button>
+                  </div>
                 </template>
               </el-table-column>
             </el-table>
@@ -356,10 +400,10 @@
     </el-container>
   </el-container>
 
-  <!-- 作业发布对话框 - 班级和学生选择 -->
+  <!-- 作业{{ $t('dashboard_mod.publishAction') }}对话框 - 班级和学生选择 -->
   <el-dialog 
     v-model="hwPublishDialogVisible" 
-    title="📤 选择发布对象" 
+    :title="'📤 选择' + $t('dashboard_mod.publishAction') + '对象'" 
     width="500px"
     align-center
   >
@@ -411,7 +455,7 @@
           :loading="hwPublishing"
           :disabled="hwPublishing"
         >
-          确认发布
+          确认{{ $t('dashboard_mod.publishAction') }}
         </el-button>
       </span>
     </template>
@@ -425,7 +469,7 @@
     @closed="handleUploadDialogClose"
   >
     <el-form label-position="top">
-      <el-form-item label="选择文件" required>
+      <el-form-item :label="$t('dashboard_mod.selectFile')" required>
          <el-upload
             class="upload-demo"
             drag
@@ -437,31 +481,31 @@
           >
             <el-icon class="el-icon--upload"><Document /></el-icon>
             <div class="el-upload__text">
-              将文件拖到此处，或 <em>点击上传</em>
+              {{ $t('dashboard_mod.dragFileText') }} <em>{{ $t('dashboard_mod.clickToUpload') }}</em>
             </div>
             <template #tip>
               <div class="el-upload__tip">
-                单文件不超过 100MB
+                {{ $t('dashboard_mod.fileLimitText') }}
               </div>
             </template>
           </el-upload>
       </el-form-item>
-      <el-form-item label="所属课程 ID" required>
-        <el-input v-model="uploadCourseId" placeholder="例如：1001" type="number" />
+      <el-form-item :label="$t('dashboard_mod.courseIdLabel')" required>
+        <el-input v-model="uploadCourseId" :placeholder="$t('dashboard_mod.courseIdPlaceholder')" type="number" />
       </el-form-item>
-      <el-form-item label="可见性">
+      <el-form-item :label="$t('dashboard_mod.visibility')">
         <el-select v-model="uploadVisibility" style="width: 100%;">
-          <el-option label="全班 (CLASS)" value="CLASS" />
-          <el-option label="私密 (PRIVATE)" value="PRIVATE" />
+          <el-option :label="$t('dashboard_mod.visClass')" value="CLASS" />
+          <el-option :label="$t('dashboard_mod.visPrivate')" value="PRIVATE" />
         </el-select>
       </el-form-item>
-      <el-form-item label="备注说明">
+      <el-form-item :label="$t('dashboard_mod.remarks')">
         <el-input v-model="uploadRemark" placeholder="选填，资源备注" />
       </el-form-item>
     </el-form>
     <template #footer>
       <el-button @click="uploadDialogVisible = false">取消</el-button>
-      <el-button type="primary" @click="confirmUploadResource" :loading="uploadingFile">确认上传</el-button>
+      <el-button type="primary" @click="confirmUploadResource" :loading="uploadingFile">{{ $t('dashboard_mod.confirmUpload') }}</el-button>
     </template>
   </el-dialog>
 
@@ -493,8 +537,17 @@ import TeacherGradingView from './TeacherGradingView.vue'
 import StudentHomeworkView from './StudentHomeworkView.vue'
 import HomeworkDetailView from './HomeworkDetailView.vue'
 
+import { useI18n } from 'vue-i18n'
+
 const currentGradingData = ref({ homeworkId: '', studentId: '' })
 const currentStudentHomeworkData = ref({ homeworkId: '' })
+
+const { t, locale } = useI18n()
+
+const handleLanguageChange = (lang: string) => {
+  locale.value = lang
+  localStorage.setItem('app_locale', lang)
+}
 
 const handleGrade = (assignment: any) => {
   currentGradingData.value = { 
@@ -512,7 +565,7 @@ const handleStudentHomeworkDetail = (homeworkId: string) => {
 const router = useRouter()
 const userStore = useUserStore()
 
-// 基础状态
+// 基础Status
 const activeMenu = ref('ai-qa')
 const isLoading = ref(false)
 
@@ -537,8 +590,8 @@ onMounted(async () => {
     return
   }
   
-  // 尝试从 sessionStorage 恢复之前的工作状态
-  console.log('【调试】尝试恢复之前的工作状态')
+  // 尝试从 sessionStorage 恢复之前的工作Status
+  console.log('【调试】尝试恢复之前的工作Status')
   const savedHwForm = sessionStorage.getItem('dashboardHwForm')
   const savedHwQuestions = sessionStorage.getItem('dashboardHwQuestions')
   const savedPptForm = sessionStorage.getItem('dashboardPptForm')
@@ -549,7 +602,7 @@ onMounted(async () => {
   if (savedHwForm) {
     try {
       Object.assign(hwForm, JSON.parse(savedHwForm))
-      console.log('【调试】已恢复作业表单状态')
+      console.log('【调试】已恢复作业表单Status')
     } catch (e) {
       console.error('恢复作业表单失败:', e)
     }
@@ -558,16 +611,16 @@ onMounted(async () => {
   if (savedHwQuestions) {
     try {
       hwGeneratedQuestions.value = JSON.parse(savedHwQuestions)
-      console.log('【调试】已恢复生成的题目列表')
+      console.log('【调试】已恢复生成的questions目列表')
     } catch (e) {
-      console.error('恢复题目列表失败:', e)
+      console.error('恢复questions目列表失败:', e)
     }
   }
   
   if (savedPptForm) {
     try {
       Object.assign(pptForm, JSON.parse(savedPptForm))
-      console.log('【调试】已恢复 PPT 表单状态')
+      console.log('【调试】已恢复 PPT 表单Status')
     } catch (e) {
       console.error('恢复 PPT 表单失败:', e)
     }
@@ -623,19 +676,19 @@ onMounted(async () => {
       }
     } catch (error: any) {
       console.error('【调试】加载发布对象失败:', error)
-      ElMessage.warning('加载班级和学生信息失败，已使用示例数据')
+      ElMessage.warning('Failed to load class and student info, using example data')
       // 回退到示例数据
       useExampleData()
     }
   }
   
-  // 监听状态变化，自动保存到 sessionStorage
+  // 监听Status变化，自动保存到 sessionStorage
   watch([hwForm, hwGeneratedQuestions, pptForm, pptOutline, pptTaskId, activeMenu], 
     ([newHwForm, newHwQuestions, newPptForm, newPptOutline, newPptTaskId, newActiveMenu]) => {
       try {
         // 保存作业表单
         sessionStorage.setItem('dashboardHwForm', JSON.stringify(newHwForm))
-        // 保存生成的题目
+        // 保存生成的questions目
         sessionStorage.setItem('dashboardHwQuestions', JSON.stringify(newHwQuestions))
         // 保存 PPT 表单
         sessionStorage.setItem('dashboardPptForm', JSON.stringify(newPptForm))
@@ -648,7 +701,7 @@ onMounted(async () => {
         // 保存当前菜单
         sessionStorage.setItem('dashboardActiveMenu', newActiveMenu)
       } catch (e) {
-        console.error('保存状态到 sessionStorage 失败:', e)
+        console.error('保存Status到 sessionStorage 失败:', e)
       }
     },
     { deep: true }
@@ -692,11 +745,11 @@ const handleUserMenuCommand = (command: string) => {
 const LogOut = async () => {
   try {
     ElMessageBox.confirm(
-      '确定要退出登录吗？',
-      '退出登录',
+      'Are you sure you want to logout?',
+      'Logout',
       {
-        confirmButtonText: '确定',
-        cancelButtonText: '取消',
+        confirmButtonText: 'Confirm',
+        cancelButtonText: 'Cancel',
         type: 'warning',
       }
     )
@@ -707,12 +760,12 @@ const LogOut = async () => {
             await logoutApi(userStore.token)
           }
           userStore.logout()
-          ElMessage.success('退出登录成功')
+          ElMessage.success('Logout successful')
           router.push('/login')
         } catch (error: any) {
           console.error('登出失败:', error)
           userStore.logout()
-          ElMessage.error(error.message || '登出失败，但已清除本地会话')
+          ElMessage.error(error.message || 'Logout failed on server, cleared local session')
           router.push('/login')
         } finally {
           isLoading.value = false
@@ -726,21 +779,21 @@ const LogOut = async () => {
 
 const pageTitle = computed(() => {
   const titles: Record<string, string> = {
-    'ai-qa': '💬 AI 问答',
-    'ai-ppt': '📊 PPT 生成',
-    'ai-homework': '📝 课堂作业（出题）',
-    'teacher-grading': '✅ 作业批改',
-    'student-homework': '📚 我的作业',
-    'file-public': '🌐 公开文件资料',
-    'file-private': '🔒 教师个人资料'
+    'ai-qa': '💬 ' + t('dashboard.aiQa'),
+    'ai-ppt': '📊 ' + t('dashboard.aiPpt'),
+    'ai-homework': '📝 ' + t('dashboard.aiHomework'),
+    'teacher-grading': '✅ ' + t('dashboard.teacherGrading'),
+    'student-homework': '📚 ' + t('dashboard.studentHomework'),
+    'file-public': '🌐 ' + t('dashboard.publicFiles'),
+    'file-private': '🔒 ' + t('dashboard.privateFiles')
   }
-  return titles[activeMenu.value] || 'AI 课堂系统'
+  return titles[activeMenu.value] || t('dashboard.logo')
 })
 
 // AI 问答
 const inputMsg = ref('')
 const chatLoading = ref(false)
-const chatList = ref<Array<{ role: string; content: string }>>([{ role: 'ai', content: '你好！我是 AI 课堂助手。你需要我帮你解答问题、生成课件还是布置作业呢？' }])
+const chatList = ref<Array<{ role: string; content: string }>>([{ role: 'ai', content: t('dashboard_mod.aiGreeting') }])
 const chatWindowRef = ref<HTMLDivElement>()
 
 const scrollToBottom = async () => {
@@ -759,7 +812,7 @@ const sendMessage = async () => {
   inputMsg.value = ''
   await scrollToBottom()
   
-  chatList.value.push({ role: 'ai', content: '思考中...' })
+  chatList.value.push({ role: 'ai', content: 'thinking...' })
   const aiMessageIndex = chatList.value.length - 1
   const aiMessage = chatList.value[aiMessageIndex] as any
   chatLoading.value = true
@@ -776,15 +829,15 @@ const sendMessage = async () => {
     
     if (response.code === 0 && response.data) {
       aiMessage.content = response.data.reply || response.data || '暂无回复'
-      ElMessage.success('AI 回复已收到')
+      ElMessage.success('AI response received')
     } else {
       aiMessage.content = '暂时无法获取 AI 回复，请检查后端服务是否正常运行'
-      ElMessage.error(response.message || 'AI 服务异常')
+      ElMessage.error(response.message || 'AI service exception')
     }
   } catch (error: any) {
     console.error('【调试】Chat error:', error)
     aiMessage.content = `请求失败: ${error.message || '请检查后端服务'}`
-    ElMessage.error(`AI 服务连接失败: ${error.message || '请重试'}`)
+    ElMessage.error(`AI 服务连接失败: ${error.message || 'Please try again'}`)
   } finally {
     chatLoading.value = false
     await scrollToBottom()
@@ -801,13 +854,13 @@ const pptLoading = ref(false)
 const pptOutline = ref('')  // PPT 大纲内容
 const pptPagesCount = ref(0)
 const pptTaskId = ref<number | null>(null)  // 创建的 PPT 任务 ID
-const pptTaskStatus = ref('')  // PPT 任务状态
+const pptTaskStatus = ref('')  // PPT 任务Status
 const pptResultUrl = ref('') // PPT 结果URL (用于下载)
 const pptPreviewUrl = ref('') // PPT 预览URL (可能需要外网可访问的URL)
 
 const generatePPT = async () => {
   if (!pptForm.topic.trim()) {
-    ElMessage.warning('请输入 PPT 主题')
+    ElMessage.warning('Please enter PPT topic')
     return
   }
   
@@ -828,7 +881,7 @@ const generatePPT = async () => {
     console.log('【调试】大纲生成响应:', outlineResponse)
     
     if (outlineResponse.code !== 0) {
-      ElMessage.error(outlineResponse.message || 'PPT 大纲生成失败')
+      ElMessage.error(outlineResponse.message || 'Failed to generate PPT outline')
       return
     }
     
@@ -837,12 +890,12 @@ const generatePPT = async () => {
     pptPagesCount.value = outlineData.pages || pptForm.pages
     
     console.log('【调试】PPT 大纲已生成，共 ' + pptPagesCount.value + ' 页')
-    ElMessage.success('PPT 大纲已生成，正在创建任务...')
+    ElMessage.success('PPT outline generated, creating task...')
     
     // 第二步：创建 PPT 任务（根据大纲生成实际 PPT）
     console.log('【调试】第二步：创建 PPT 任务')
     const formData = new FormData()
-    formData.append('prompt', "主题：" + pptForm.topic + "\n" + "大纲要求：" + pptOutline.value)
+    formData.append('prompt', "主questions：" + pptForm.topic + "\n" + "大纲要求：" + pptOutline.value)
     formData.append('pages', pptForm.pages.toString())
     if (pptForm.style) {
       formData.append('style', pptForm.style)
@@ -853,7 +906,7 @@ const generatePPT = async () => {
     console.log('【调试】PPT 任务创建响应:', taskResponse)
     
     if (taskResponse.code !== 0) {
-      ElMessage.error(taskResponse.message || 'PPT 任务创建失败')
+      ElMessage.error(taskResponse.message || 'Failed to create PPT task')
       return
     }
     
@@ -861,19 +914,19 @@ const generatePPT = async () => {
     pptTaskId.value = taskData.recordId
     pptTaskStatus.value = taskData.status
     
-    console.log('【调试】PPT 任务已创建，ID:', pptTaskId.value, '状态:', taskData.status)
-    ElMessage.success(`PPT 任务已创建 (ID: ${pptTaskId.value})，状态: ${taskData.status}`)
+    console.log('【调试】PPT task created，ID:', pptTaskId.value, 'Status:', taskData.status)
+    ElMessage.success(`PPT task created (ID: ${pptTaskId.value})，Status: ${taskData.status}`)
     
-    // 第三步：定时查询任务状态
+    // 第三步：定时查询任务Status
     if (pptTaskId.value) {
-      // 启动轮询，每 5 秒查询一次状态
+      // 启动轮询，每 5 秒查询一次Status
       let pollCount = 0
       const maxPolls = 60  // 最多轮询 60 次（5分钟）
       
       const pollInterval = setInterval(async () => {
         if (pollCount >= maxPolls) {
           clearInterval(pollInterval)
-          ElMessage.warning('PPT 生成超时，请稍后手动查询或刷新页面')
+          ElMessage.warning('PPT generation timed out, please wait or manually query later')
           return
         }
         
@@ -882,7 +935,7 @@ const generatePPT = async () => {
           if (statusResponse.code === 0) {
             const status = statusResponse.data.status
             pptTaskStatus.value = status
-            console.log('【调试】PPT 任务状态查询:', status)
+            console.log('【调试】PPT 任务Status查询:', status)
             
             if (status === 'SUCCESS') {
               clearInterval(pollInterval)
@@ -894,19 +947,19 @@ const generatePPT = async () => {
               // 优先使用远端公网 URL 进行预览（Office 预览需公网 HTTPS）
               pptPreviewUrl.value = data.remoteDownloadUrl || data.resultFileUrl || data.downloadUrl
               
-              // 若链接为内网 HTTP（如含端口号 9000 且不是从公网访问），微软预览大概率会报错，但依然保留 iframe 和显式的下载提示
+              // 若链接为内网 HTTP（如含端口号 9000 且不是从公网访问），微软预览大概率会报错，但依然保留 iframe 和显式的下载Notice
               
-              ElMessage.success('PPT 生成成功！')
+              ElMessage.success('PPT generation successful!')
               console.log('【调试】PPT 下载链接:', pptResultUrl.value)
               console.log('【调试】PPT 预览链接:', pptPreviewUrl.value)
             } else if (status === 'FAILED' || status === 'RESULT_SYNC_FAILED') {
               clearInterval(pollInterval)
               pptLoading.value = false
-              ElMessage.error(`PPT 生成失败: ${statusResponse.data.errorMessage || status}`)
+              ElMessage.error(`PPT generation failed: ${statusResponse.data.errorMessage || status}`)
             }
           }
         } catch (error) {
-          console.error('【调试】查询 PPT 任务状态失败:', error)
+          console.error('【调试】查询 PPT 任务Status失败:', error)
           clearInterval(pollInterval)
           pptLoading.value = false
         }
@@ -919,7 +972,7 @@ const generatePPT = async () => {
   } catch (error: any) {
     console.error('【调试】PPT 生成错误:', error)
     pptLoading.value = false
-    ElMessage.error(`PPT 生成失败: ${error.message || '请重试'}`)
+    ElMessage.error(`PPT generation failed: ${error.message || 'Please try again'}`)
   }
 }
 
@@ -928,8 +981,29 @@ const hwForm = reactive({
   knowledge: '',
   difficulty: 'medium',
   types: [] as string[],
-  questionCount: 5
+  questionCount: 5,
+  prompt: '',
+  fileList: [] as any[]
 })
+
+const handleFileChange = (file: any, fileList: any[]) => {
+  const allowedExtensions = ['.txt', '.md', '.csv', '.json', '.xml', '.html', '.yaml', '.docx', '.pdf']
+  const fileExt = file.name.substring(file.name.lastIndexOf('.')).toLowerCase()
+  const isAllowed = allowedExtensions.includes(fileExt)
+  const isLt100M = file.size / 1024 / 1024 < 100
+
+  if (!isAllowed) {
+    ElMessage.error(`File type not supported. Please upload one of: ${allowedExtensions.join(', ')}`)
+    hwForm.fileList = []
+    return false
+  }
+  if (!isLt100M) {
+    ElMessage.error('File size cannot exceed 100MB!')
+    hwForm.fileList = []
+    return false
+  }
+}
+
 const hwGeneratedQuestions = ref<Array<any>>([])
 const hwLoading = ref(false)
 const hwPublishing = ref(false)
@@ -947,11 +1021,11 @@ const availableStudents = ref<Array<any>>([])
 
 const generateHomework = async () => {
   if (!hwForm.knowledge.trim()) {
-    ElMessage.warning('请输入考察知识点')
+    ElMessage.warning('Please enter knowledge points')
     return
   }
   if (hwForm.types.length === 0) {
-    ElMessage.warning('请选择题型')
+    ElMessage.warning('Please select question types')
     return
   }
   
@@ -966,20 +1040,43 @@ const generateHomework = async () => {
   
   const attemptGenerate = async (): Promise<any> => {
     try {
-      console.log('【调试】生成作业，题型:', hwForm.types)
+      console.log('【调试】生成作业，questions型:', hwForm.types)
       
-      const requestData = {
-        knowledge: hwForm.knowledge,
-        difficulty: hwForm.difficulty as 'easy' | 'medium' | 'hard',
-        questionTypes: hwForm.types as ('choice' | 'judge')[],
-        questionCount: hwForm.questionCount
+      let requestData: any
+      const isFileUpload = hwForm.fileList && hwForm.fileList.length > 0;
+      
+      if (isFileUpload) {
+        const formData = new FormData();
+        formData.append('knowledge', hwForm.knowledge);
+        formData.append('difficulty', hwForm.difficulty);
+        hwForm.types.forEach(item => {
+          formData.append('questionTypes', item);
+        });
+        formData.append('questionCount', hwForm.questionCount.toString());
+        if (hwForm.prompt) {
+          formData.append('prompt', hwForm.prompt);
+        }
+        
+        // 假设 fileList 中有 file
+        formData.append('file', hwForm.fileList[0].raw);
+        console.log('【调试】即将发送的请求参数: [FormData]');
+        requestData = formData;
+      } else {
+        requestData = {
+          knowledge: hwForm.knowledge,
+          difficulty: hwForm.difficulty as 'easy' | 'medium' | 'hard',
+          questionTypes: hwForm.types as ('choice' | 'judge')[],
+          questionCount: hwForm.questionCount
+        }
+        if (hwForm.prompt) {
+          requestData.prompt = hwForm.prompt;
+        }
+        console.log('【调试】即将发送的请求参数:', JSON.stringify(requestData, null, 2))
+        console.log('【调试】知识点内容:', requestData.knowledge)
+        console.log('【调试】难度:', requestData.difficulty)
+        console.log('【调试】questions型数组:', requestData.questionTypes)
+        console.log('【调试】questions目数量:', requestData.questionCount)
       }
-      
-      console.log('【调试】即将发送的请求参数:', JSON.stringify(requestData, null, 2))
-      console.log('【调试】知识点内容:', requestData.knowledge)
-      console.log('【调试】难度:', requestData.difficulty)
-      console.log('【调试】题型数组:', requestData.questionTypes)
-      console.log('【调试】题目数量:', requestData.questionCount)
       
       const response = await aiGenerateHomeworkApi(requestData)
       
@@ -988,24 +1085,24 @@ const generateHomework = async () => {
       console.log('【调试】response.data:', response.data)
       console.log('【调试】response.questions:', (response as any).questions)
       
-      // 尝试从多个可能的位置获取题目
+      // 尝试从多个可能的位置获取questions目
       const responseData = response.data as any
       const questions = responseData?.questions || (response as any).questions
       
       if (response.code === 0 && questions && questions.length > 0) {
         hwGeneratedQuestions.value = questions
-        console.log('【调试】题目生成成功，共', questions.length, '题:', questions)
-        ElMessage.success(`题目生成成功，共 ${questions.length} 题`)
+        console.log('【调试】Questions generated successfully, total', questions.length, 'questions:', questions)
+        ElMessage.success(`Questions generated successfully, total ${questions.length} questions`)
       } else {
-        console.error('【调试】未获取到题目数据。response:', response, 'questions:', questions)
-        ElMessage.error('题目生成后端返回为空，请检查参数是否正确')
+        console.error('【调试】未获取到questions目数据。response:', response, 'questions:', questions)
+        ElMessage.error('Backend returned empty for questions, check parameters')
       }
     } catch (error: any) {
       const errorMsg = error.message || '未知错误'
       const errorStatus = error.response?.status
       
       console.error('【调试】Generate homework error:', error)
-      console.error('【调试】错误状态码:', errorStatus)
+      console.error('【调试】错误Status码:', errorStatus)
       console.error('【调试】完整错误对象:', error.response?.data || error)
       
       // 504 错误进行重试（最多重试 4 次）
@@ -1013,22 +1110,22 @@ const generateHomework = async () => {
         retryCount++
         const delayTime = 3000 + (retryCount * 1000)  // 第 1 次延迟 4 秒，第 2 次 5 秒，第 3 次 6 秒，第 4 次 7 秒
         console.warn(`【调试】发生 504 超时，进行第 ${retryCount}/${maxRetries} 次重试，延迟 ${delayTime/1000} 秒...`)
-        ElMessage.warning(`后端网关超时，正在重试... (${retryCount}/${maxRetries})`)
+        ElMessage.warning(`Backend gateway timeout, retrying... (${retryCount}/${maxRetries})`)
         await new Promise(resolve => setTimeout(resolve, delayTime))
         return await attemptGenerate()
       }
       
       // 最终错误处理
       if (errorStatus === 504) {
-        ElMessage.error(`后端网关超时（504）：AI 处理请求耗时过长，已重试 ${maxRetries} 次仍未成功。\n\n建议：\n1. 减少题目数量重试\n2. 等待几分钟后重试\n3. 检查后端服务状态\n→ 管理员：请增加 Nginx proxy_read_timeout 配置`)
+        ElMessage.error(`Backend gateway timeout (504): AI processing too long, retried ${maxRetries} times without success. Suggestions: 1. Reduce questions 2. Wait 3. Check backend. Admin: increase Nginx proxy_read_timeout.`)
       } else if (errorMsg.includes('timeout')) {
-        ElMessage.error('请求超时：后端处理时间过长，请稍后重试或检查后端服务是否正常运行')
+        ElMessage.error('Request timeout: backend processing too long, please retry later')
       } else if (errorStatus === 400) {
-        ElMessage.error('请求参数错误（400）：请检查填写的知识点、难度等参数是否正确')
+        ElMessage.error('Parameter error (400): check knowledge point, difficulty, etc.')
       } else if (errorMsg.includes('401') || errorMsg.includes('未登录')) {
-        ElMessage.error('登录已过期，请重新登录')
+        ElMessage.error('Login expired, please login again')
       } else {
-        ElMessage.error(`题目生成失败: ${errorMsg}`)
+        ElMessage.error(`Failed to generate questions: ${errorMsg}`)
       }
     }
   }
@@ -1047,7 +1144,7 @@ const generateHomework = async () => {
 
 const publishHomework = async () => {
   if (hwGeneratedQuestions.value.length === 0) {
-    ElMessage.warning('请先生成题目')
+    ElMessage.warning('Please generate questions first')
     return
   }
   
@@ -1057,7 +1154,7 @@ const publishHomework = async () => {
 
 const confirmPublishHomework = async () => {
   if (selectedClasses.value.length === 0 && selectedStudents.value.length === 0) {
-    ElMessage.warning('请至少选择一个班级或学生')
+    ElMessage.warning('Please select at least one class or student')
     return
   }
   
@@ -1073,7 +1170,7 @@ const confirmPublishHomework = async () => {
     })
     
     if (response.code === 0) {
-      ElMessage.success('作业发布成功')
+      ElMessage.success('Homework published successfully')
       hwForm.knowledge = ''
       hwForm.types = []
       hwGeneratedQuestions.value = []
@@ -1081,11 +1178,11 @@ const confirmPublishHomework = async () => {
       selectedStudents.value = []
       hwPublishDialogVisible.value = false
     } else {
-      ElMessage.error(response.message || '作业发布失败')
+      ElMessage.error(response.message || 'Failed to publish homework')
     }
   } catch (error: any) {
     console.error('Publish homework error:', error)
-    ElMessage.error('作业发布失败，请重试')
+    ElMessage.error('Failed to publish homework, please try again')
   } finally {
     hwPublishing.value = false
   }
@@ -1119,11 +1216,11 @@ const openUploadDialog = () => {
 
 const confirmUploadResource = async () => {
   if (fileList.value.length === 0) {
-    ElMessage.warning('请选择文件')
+    ElMessage.warning('Please select a file')
     return
   }
   if (!uploadCourseId.value) {
-    ElMessage.warning('请填写所属课程 ID')
+    ElMessage.warning('Please fill in the course ID')
     return
   }
   
@@ -1139,15 +1236,15 @@ const confirmUploadResource = async () => {
 
     const { code, message } = await uploadCourseResourceApi(formData) as any
     if (code === 0) {
-      ElMessage.success('上传成功')
+      ElMessage.success('Upload successful')
       uploadDialogVisible.value = false
       loadResources()
     } else {
-      ElMessage.error(message || '上传失败')
+      ElMessage.error(message || 'Upload failed')
     }
   } catch (error: any) {
     console.error('上传文件错误:', error)
-    ElMessage.error('上传过程出错')
+    ElMessage.error('Upload process error')
   } finally {
     uploadingFile.value = false
   }
@@ -1186,7 +1283,7 @@ const loadResources = async () => {
     }
   } catch (error: any) {
     console.error('获取资源列表报错:', error)
-    // ElMessage.error('同步文件数据失败')
+    // ElMessage.error('Failed to sync file data')
   } finally {
     loadingFiles.value = false
   }
@@ -1205,12 +1302,12 @@ const publishFile = async (row: any) => {
       courseId: row.courseId,
     }) as any
     if (code === 0) {
-      ElMessage.success('发布成功')
+      ElMessage.success('Publish successful')
       loadResources()
     } else {
-      ElMessage.error(message || '发布失败')
+      ElMessage.error(message || 'Publish failed')
     }
-  } catch(e) { ElMessage.error('系统异常') }
+  } catch(e) { ElMessage.error('System exception') }
 }
 
 const revokeFile = async (row: any) => {
@@ -1220,23 +1317,23 @@ const revokeFile = async (row: any) => {
       courseId: row.courseId,
     }) as any
     if (code === 0) {
-      ElMessage.success('撤回成功')
+      ElMessage.success('Revoke successful')
       loadResources()
     } else {
-      ElMessage.error(message || '撤回失败')
+      ElMessage.error(message || 'Revoke failed')
     }
-  } catch(e) { ElMessage.error('系统异常') }
+  } catch(e) { ElMessage.error('System exception') }
 }
 
 const deleteFile = async (row: any) => {
   try {
-    await ElMessageBox.confirm('确定要删除这个资源吗？', '提示', { type: 'warning' })
+    await ElMessageBox.confirm('Are you sure to delete this resource?', 'Notice', { type: 'warning' })
     const { code, message } = await deleteResourceApi(row.resourceId) as any
     if (code === 0) {
-      ElMessage.success('删除成功')
+      ElMessage.success('Delete successful')
       loadResources()
     } else {
-      ElMessage.error(message || '删除失败')
+      ElMessage.error(message || 'Delete failed')
     }
   } catch {}
 }
@@ -1250,7 +1347,7 @@ const previewFile = async (row: any) => {
     const ext = (row.suffix || '').toLowerCase()
     
     if (!supportedTypes.includes(ext)) {
-      ElMessage.warning(`[${row.originalFilename || '该文件'}] 暂不支持在线预览，请下载后查看`)
+      ElMessage.warning(`[${row.originalFilename || 'This file'}] does not support online preview, please download`)
       return
     }
 
@@ -1262,17 +1359,17 @@ const previewFile = async (row: any) => {
     if (res.code === 0 && res.data) {
       window.open(res.data, '_blank')
     } else {
-      ElMessage.warning(res.message || '该文件暂时不支持直接在线预览')
+      ElMessage.warning(res.message || 'This file currently does not support direct online preview')
     }
   } catch (e: any) { 
-    ElMessage.error('预览链接获取失败') 
+    ElMessage.error('Failed to get preview link') 
   }
 }
 
 const downloadFile = async (row: any) => {
   try {
     downloadingIds.value.push(row.resourceId)
-    ElMessage.info('开始请求下载，请稍候...')
+    ElMessage.info('Requesting download, please wait...')
     
     // 不用管是公开还是私密页面，凡是老师角色都应该调用 course/download 接口，学生角色调用 student/download 接口
     const url = isTeacher.value
@@ -1310,7 +1407,7 @@ const downloadFile = async (row: any) => {
         if (utf8FilenameMatch && utf8FilenameMatch.length === 2) {
           fileName = decodeURIComponent(utf8FilenameMatch[1])
         } else if (fileNameMatch && fileNameMatch.length === 2) {
-          // 处理后端使用 RFC 2047 (如 =?UTF-8?Q?...?= 等邮件格式) 未解码直接塞入头部的兼容问题
+          // 处理后端使用 RFC 2047 (如 =?UTF-8?Q?...?= 等邮件格式) 未解码直接塞入头部的兼容问questions
           let rawName = fileNameMatch[1]
           if (rawName.startsWith('=?UTF-8?')) {
             rawName = rawName.replace(/=\?(?:utf-8|UTF-8)\?(?:B|b)\?([A-Za-z0-9+/=]+)\?=/g, (_: string, p1: string) => {
@@ -1331,10 +1428,10 @@ const downloadFile = async (row: any) => {
     link.click()
     document.body.removeChild(link)
     window.URL.revokeObjectURL(downloadUrl)
-    ElMessage.success('开始下载')
+    ElMessage.success('Starting download')
   } catch (error) {
     console.error('下载文件报错:', error)
-    ElMessage.error('下载失败，请重试')
+    ElMessage.error('Download failed, please try again')
   } finally {
     downloadingIds.value = downloadingIds.value.filter(id => id !== row.resourceId)
   }
@@ -1494,7 +1591,7 @@ const downloadFile = async (row: any) => {
   flex-shrink: 0; 
 }
 
-/* 预览框与作业样式 */
+/* {{ $t('dashboard_mod.preview') }}框与作业样式 */
 .preview-box { 
   background-color: #f9fafb; 
   border-radius: 12px; 

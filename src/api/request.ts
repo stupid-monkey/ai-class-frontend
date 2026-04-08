@@ -13,7 +13,7 @@ let baseURL = globalConfig.API_BASE_URL || '/smartclassroom';
 
 const service: AxiosInstance = axios.create({
     baseURL: baseURL,
-    // 超时时间设置为180秒，AI 生成题目可能需要较长时间处理
+    // 超时时间设置为180秒，AI 生成questions目可能需要较长时间处理
     timeout: 180000,
     headers: {
         'Content-Type': 'application/json',
@@ -39,14 +39,16 @@ service.interceptors.request.use(
             console.log('独立部署模式');
             config.headers["token"] = viewerToken;
         }
-        
+
         if (config.data instanceof FormData) {
-            // 确保不保留之前设置的 json 头
+            // 在 Axios 中上传 FormData，必须删除所有 Content-Type 设置
+            // 以便让浏览器能够自动添加带有正确 boundary 的 multipart/form-data 头
             if (config.headers) {
-                delete config.headers['Content-Type']
-                delete config.headers['Accept']
+                delete config.headers['Content-Type'];
+                delete config.headers['content-type'];
             }
         }
+        
         return config
     },
     (error: any) => {
@@ -71,7 +73,7 @@ service.interceptors.response.use(
                 return res as any
             }
             
-            // 判断业务状态：code 为 200 或 0 或 1000 等为成功
+            // 判断业务Status：code 为 200 或 0 或 1000 等为成功
             const isSuccess = [200, 0, 1000].includes(res.code)
             
             if (!isSuccess) {
@@ -79,14 +81,14 @@ service.interceptors.response.use(
                 const errorMsg = res.msg || res.message || '请求失败'
                 console.error('业务错误:', res.code, errorMsg)
                 
-                // 检测登录状态失效：code 401 或 61002（登录状态已失效）
-                if (res.code === 401 || res.code === 61002 || errorMsg.includes('未登录') || errorMsg.includes('未授权') || errorMsg.includes('登录状态已失效')) {
+                // 检测登录Status失效：code 401 或 61002（登录Status已失效）
+                if (res.code === 401 || res.code === 61002 || errorMsg.includes('未登录') || errorMsg.includes('未授权') || errorMsg.includes('登录Status已失效')) {
                     const isViewerMode = !!(window as any).GLOBAL_CONFIG?.VIEWER_TOKEN;
                     
                     if (!isViewerMode) {
                         // 防止死循环：如果已经在登录页，就不再执行重定向
                         if (!window.location.hash.includes('/login') && !window.location.pathname.includes('/login')) {
-                            console.log('【调试】检测到登录状态失效，准备跳转到登录页')
+                            console.log('【调试】检测到登录Status失效，准备跳转到登录页')
                             
                             // 保存当前路由路径（用户登录后要返回这里）
                             const currentPath = window.location.hash || window.location.pathname
@@ -150,7 +152,7 @@ service.interceptors.response.use(
             }
         } else if (error.request) {
             console.error(error.request)
-            console.error('请求未响应，可能是网络问题')
+            console.error('请求未响应，可能是网络问questions')
         } else {
             console.error('请求配置错误:', error.msg)
         }

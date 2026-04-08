@@ -1,21 +1,42 @@
 <template>
   <div class="login-wrapper">
+    <div style="position: absolute; top: 20px; right: 20px;">
+      <el-dropdown @command="handleLanguageChange" trigger="click">
+        <el-button type="default" plain>
+          {{ $t('common.language') }} <el-icon class="el-icon--right"><ArrowDown /></el-icon>
+        </el-button>
+        <template #dropdown>
+          <el-dropdown-menu>
+            <el-dropdown-item command="en" :disabled="$i18n.locale === 'en'">English</el-dropdown-item>
+            <el-dropdown-item command="zh" :disabled="$i18n.locale === 'zh'">简体中文</el-dropdown-item>
+          </el-dropdown-menu>
+        </template>
+      </el-dropdown>
+    </div>
     <el-card class="login-card" shadow="hover">
       <div class="login-header">
-        <h2>🤖 AI 智慧课堂系统</h2>
-        <p>探索未来的学习与教学方式</p>
+        <h2>🤖 {{ $t('login.title') }}</h2>
+        <p>{{ $t('login.subtitle') }}</p>
       </div>
 
       <el-tabs v-model="activeRole" class="role-tabs">
-        <el-tab-pane label="👨‍🎓 学生端登录" name="student"></el-tab-pane>
-        <el-tab-pane label="👨‍🏫 教师端登录" name="teacher"></el-tab-pane>
+        <el-tab-pane name="student">
+          <template #label>
+            <span>👨‍🎓 {{ $t('login.studentLogin') }}</span>
+          </template>
+        </el-tab-pane>
+        <el-tab-pane name="teacher">
+          <template #label>
+            <span>👨‍🏫 {{ $t('login.teacherLogin') }}</span>
+          </template>
+        </el-tab-pane>
       </el-tabs>
 
       <el-form :model="loginForm" @keyup.enter="handleLogin" label-width="0">
         <el-form-item>
           <el-input 
             v-model="loginForm.username" 
-            placeholder="请输入账号" 
+            :placeholder="$t('login.sidPlaceholder')" 
             size="large"
             prefix-icon="User"
             :disabled="isLoading"
@@ -26,7 +47,7 @@
           <el-input 
             v-model="loginForm.password" 
             type="password" 
-            placeholder="请输入密码" 
+            :placeholder="$t('login.pwdPlaceholder')" 
             size="large"
             prefix-icon="Lock"
             show-password
@@ -43,7 +64,7 @@
           :disabled="isLoading"
           @click="handleLogin"
         >
-          {{ isLoading ? '登录中...' : `立即登录 (${activeRole === 'teacher' ? '教师' : '学生'})` }}
+          {{ isLoading ? $t('common.loading') : (activeRole === 'teacher' ? $t('login.loginBtnTeach') : $t('login.loginBtnStud')) }}
         </el-button>
       </el-form>
     </el-card>
@@ -56,11 +77,19 @@ import { teacherLoginApi, studentLoginApi } from '@/api/log'
 import { ElMessage } from 'element-plus'
 import { useRouter, useRoute } from 'vue-router'
 import { useUserStore } from '@/stores/user'
+import { useI18n } from 'vue-i18n'
+import { ArrowDown } from '@element-plus/icons-vue'
 import type { ApiResponse } from '@/api/request'
 import type { login } from '@/model/login'
 
+const { t, locale } = useI18n()
 const router = useRouter()
 const route = useRoute()
+
+const handleLanguageChange = (lang: string) => {
+  locale.value = lang
+  localStorage.setItem('app_locale', lang)
+}
 const userStore = useUserStore()
 const activeRole = ref('student') // 默认选中的角色：student 或 teacher
 const isLoading = ref(false)
@@ -122,7 +151,7 @@ const handleLogin = async () => {
     const { code, msg, data } = res as ApiResponse<login>
 
     if (code === 200 || code === 0) {
-      ElMessage.success('登录成功！')
+      ElMessage.success(t('login.loginSuccess'))
       console.log('登录成功，用户信息：', data)
 
       // 保存本次登录的账号、密码和角色（以便下次登录状态失效时快速恢复）
@@ -158,10 +187,10 @@ const handleLogin = async () => {
         }
       }
     } else {
-      ElMessage.error(msg || '登录失败，请检查账号和密码')
+      ElMessage.error(msg || t('login.loginFailed'))
     }
   } catch (error: any) {
-    ElMessage.error(error.message || '登录请求失败，请稍后再试')
+    ElMessage.error(error.message || t('login.loginFailed'))
     console.error('登录请求错误：', error)
   } finally {
     isLoading.value = false
@@ -211,9 +240,3 @@ const handleLogin = async () => {
   border-radius: 8px;
 }
 </style>
-
-{
-  "rewrites": [
-    { "source": "/(.*)", "destination": "/index.html" }
-  ]
-}

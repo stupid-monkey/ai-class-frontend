@@ -1,4 +1,5 @@
 import { get, post } from './base'
+import service from './request'
 
 /**
  * AI 普通问答聊天
@@ -77,7 +78,7 @@ export const aiStreamChatFetch = async (
     })
     
     clearTimeout(timeoutId)
-    console.log('【API调试】响应状态:', response.status, response.statusText)
+    console.log('【API调试】响应Status:', response.status, response.statusText)
     
     if (!response.ok) {
       const errorText = await response.text()
@@ -161,21 +162,25 @@ export const aiStreamChatFetch = async (
 
 /**
  * AI 智能出题
- * @param knowledge 知识点
- * @param difficulty 难度等级 (easy/medium/hard)
- * @param questionTypes 题型数组 (choice=选择题/judge=判断题)
- * @param questionCount 题目数量
+ * @param data 包含知识点、难度等级、题型、题目数量等参数的请求体
  */
-export const aiGenerateHomeworkApi = (data: {
+export const aiGenerateHomeworkApi = (data: FormData | {
   knowledge: string
   difficulty: 'easy' | 'medium' | 'hard'
   questionTypes: ('choice' | 'judge')[]
   questionCount: number
-}) => post("/api/ai/homework/generate", data)
+  prompt?: string
+}) => {
+  // 当 data 为 FormData 时，不能手动设置 Content-Type，否则会丢失 boundary
+  const config = data instanceof FormData 
+    ? undefined 
+    : { headers: { 'Content-Type': 'application/json' } };
+  return service.post("/api/ai/homework/generate", data, config).then(res => res as any)
+}
 
 /**
  * AI 生成 PPT 大纲
- * @param topic 主题
+ * @param topic 主questions
  * @param pages 页数
  * @param style 风格
  */
@@ -211,7 +216,7 @@ export const publishHomeworkApi = (data: {
 export const getHomeworkListApi = () => get("/api/homework/list")
 
 /**
- * 获取教师已发布作业提交总览（包含所有学生的提交状态分类）
+ * 获取教师已发布作业提交总览（包含所有学生的提交Status分类）
  * 返回数据包含：assignments、pendingAssignments、submittedAssignments、reviewedAssignments
  */
 export const getTeacherPublishedHomeworkApi = () => get("/api/homework/teacher/published")
@@ -226,7 +231,7 @@ export const getHomeworkDetailApi = (homeworkId: number) =>
 /**
  * 学生提交作业
  * @param homeworkId 作业 ID
- * @param answers 答题数据
+ * @param answers 答questions数据
  * @param note 备注
  */
 export const submitHomeworkApi = (
@@ -248,7 +253,8 @@ export const reviewHomeworkApi = (
   homeworkId: number,
   data: {
     studentId: number
-    score: number
+    reviewMode?: 'manual' | 'ai'
+    score?: number
     feedback?: string
   }
 ) => post(`/api/homework/${homeworkId}/review`, data)
@@ -273,14 +279,14 @@ export const createPPTTaskApi = (data: FormData) =>
   post("/api/smart-aippt/generate", data as any)
 
 /**
- * 查询 PPT 任务状态（按本地记录 ID）
+ * 查询 PPT 任务Status（按本地记录 ID）
  * @param recordId 本地记录 ID
  */
 export const getPPTTaskByIdApi = (recordId: number) => 
   get(`/api/smart-aippt/tasks/${recordId}`)
 
 /**
- * 查询 PPT 任务状态（按远端任务 ID）
+ * 查询 PPT 任务Status（按远端任务 ID）
  * @param taskId 远端任务 ID
  */
 export const getPPTTaskByRemoteIdApi = (taskId: string) => 

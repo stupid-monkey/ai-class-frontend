@@ -1,14 +1,14 @@
 <template>
   <el-container class="homework-container">
     <el-header class="top-header">
-      <span class="page-title">📚 我的作业</span>
-      <el-button type="primary" @click="refreshHomeworks">🔄 刷新</el-button>
+      <span class="page-title">📖 {{ $t('student_hw.title') }}</span>
+      <el-button type="primary" @click="refreshHomeworks">🔄 {{ $t('student_hw.refresh') }}</el-button>
     </el-header>
 
     <el-main class="main-content">
       <el-card shadow="hover" v-if="homeworkList.length === 0">
         <div style="text-align: center; padding: 40px;">
-          <el-empty description="暂无作业" />
+          <el-empty :description="$t('student_hw.no_hw')" />
         </div>
       </el-card>
 
@@ -26,33 +26,33 @@
 
             <div class="homework-info">
               <div class="info-row">
-                <span class="label">📖 知识点:</span>
+                <span class="label">📚 {{ $t('student_hw.knowledge') }}:</span>
                 <span>{{ hw.knowledge }}</span>
               </div>
               <div class="info-row">
-                <span class="label">📝 题型:</span>
+                <span class="label">📝 {{ $t('student_hw.q_type') }}:</span>
                 <span>{{ hw.questionTypes.map(mapQuestionType).join('、') }}</span>
               </div>
               <div class="info-row">
-                <span class="label">⭐ 难度:</span>
-                <span>{{ hw.difficulty === 'easy' ? '简单' : hw.difficulty === 'medium' ? '中等' : '困难' }}</span>
+                <span class="label">⭐ {{ $t('student_hw.level') }}:</span>
+                <span>{{ hw.difficulty === 'easy' ? $t('student_hw.easy') : hw.difficulty === 'medium' ? $t('student_hw.medium') : $t('student_hw.hard') }}</span>
               </div>
               <div class="info-row">
-                <span class="label">❓ 题目数:</span>
+                <span class="label">❓ {{ $t('student_hw.q_count') }}:</span>
                 <span>{{ hw.questionCount }}</span>
               </div>
               <div class="info-row">
-                <span class="label">👨‍🏫 教师:</span>
+                <span class="label">👨‍🏫 {{ $t('student_hw.teacher') }}:</span>
                 <span>{{ hw.teacherName }}</span>
               </div>
               <div class="info-row">
-                <span class="label">📅 发布时间:</span>
+                <span class="label">📅 {{ $t('student_hw.pub_time') }}:</span>
                 <span>{{ formatTime(hw.createdAt) }}</span>
               </div>
             </div>
 
             <el-button type="primary" @click="goToDetail(hw.homeworkId)" style="width: 100%; margin-top: 10px;">
-              {{ hw.assignmentStatus === 'ASSIGNED' ? '📝 开始做题' : hw.assignmentStatus === 'SUBMITTED' ? '✅ 查看提交' : '📊 查看批改' }}
+              {{ hw.assignmentStatus === 'ASSIGNED' ?  $t('student_hw.start') : hw.assignmentStatus === 'SUBMITTED' ? $t('student_hw.view_sub') : $t('student_hw.detail') }}
             </el-button>
           </el-card>
         </el-col>
@@ -63,6 +63,7 @@
 
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import { getHomeworkListApi } from '@/api/ai'
@@ -72,13 +73,14 @@ const props = defineProps<{ inDashboard?: boolean }>()
 const emit = defineEmits(['detail'])
 
 const router = useRouter()
+const { t } = useI18n()
 const userStore = useUserStore()
 
 const homeworkList = ref<any[]>([])
 const isLoading = ref(false)
 
 const mapQuestionType = (type: string) => {
-  return type === 'choice' ? '选择题' : type === 'judge' ? '判断题' : type
+  return type === 'choice' ? t('student_hw.choice') : type === 'judge' ? t('student_hw.judge') : type === 'blank' ? t('student_hw.blank') : type
 }
 
 const getStatusType = (status: string) => {
@@ -97,11 +99,11 @@ const getStatusType = (status: string) => {
 const getStatusLabel = (status: string) => {
   switch (status) {
     case 'ASSIGNED':
-      return '未提交'
+      return t('student_hw.unsubmit')
     case 'SUBMITTED':
-      return '已提交'
+      return t('student_hw.submitted')
     case 'REVIEWED':
-      return '已批改'
+      return t('student_hw.reviewed')
     default:
       return status
   }
@@ -130,13 +132,13 @@ const refreshHomeworks = async () => {
         return hw.viewerRole === 'student'
       })
       console.log('【调试】学生作业列表:', homeworkList.value)
-      ElMessage.success(`加载成功，共 ${homeworkList.value.length} 项作业`)
+      ElMessage.success(t('student_hw.load_success', { num: homeworkList.value.length }))
     } else {
-      ElMessage.error(response.message || '加载作业失败')
+      ElMessage.error(response.message || t('student_hw.load_fail'))
     }
   } catch (error: any) {
     console.error('【调试】加载作业列表失败:', error)
-    ElMessage.error(`加载失败: ${error.message || '请检查网络'}`)
+    ElMessage.error(error.message || t('student_hw.net_fail'))
   } finally {
     isLoading.value = false
   }
@@ -155,7 +157,7 @@ const goToDetail = (homeworkId: number) => {
 
 onMounted(() => {
   if (!userStore.isLoggedIn) {
-    ElMessage.warning('请先登录')
+    ElMessage.warning(t('student_hw.login_req'))
     router.push('/login')
     return
   }

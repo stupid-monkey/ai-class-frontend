@@ -114,13 +114,13 @@ onMounted(() => {
 
 const CACHE_KEY = 'smart_schedule_form_draft'
 
-// 全局状态
+// 全局Status
 const isSubmitting = ref(false)         
 const isSuccess = ref(false)            
 const currentTaskId = ref('')
 const currentClassId = ref('CLS_001') 
 let pollTimer1: any = null
-// 校历与弹窗状态
+// 校历与弹窗Status
 const calendarRef = ref<InstanceType<typeof SchoolCalendar> | null>(null)
 const calendarStatusMap = ref<Record<string, string>>({}) 
 const showWeeklyDialog = ref(false)
@@ -183,7 +183,7 @@ const submitForm = async () => {
 
   } catch (error) {
     isSubmitting.value = false
-    ElMessage.error("任务提交失败，请检查网络或后端状态")
+    ElMessage.error("任务提交失败，请检查网络或后端Status")
   }
 }
 const startPollingWeeklyData = () => {
