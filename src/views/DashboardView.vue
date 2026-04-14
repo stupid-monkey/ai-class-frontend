@@ -159,6 +159,10 @@
                         <el-button type="success" size="large"><el-icon style="margin-right: 4px"><Download /></el-icon>{{ $t('dashboard_mod.downloadPptBtn') }}</el-button>
                       </a>
                     </div>
+                    <div v-if="pptCredits && pptCredits.deducted !== null && pptCredits.deducted !== undefined" style="margin-top: 10px; padding-top: 10px; border-top: 1px dotted #ccc;">
+                        <el-tag type="info" size="small">Credits Deducted: {{ pptCredits.deducted }}</el-tag>
+                        <el-tag v-if="pptCredits.remaining !== null && pptCredits.remaining !== undefined" type="success" size="small" style="margin-left: 10px;">Credits Remaining: {{ pptCredits.remaining }}</el-tag>
+                    </div>
                   </div>
                   <!-- 使用微软 Office Online {{ $t('dashboard_mod.preview') }} -->
                   <div style="flex-grow: 1; border: 1px solid #dcdfe6; position: relative;">
@@ -906,89 +910,65 @@ const generatePPTOutline = async () => {
 }
 
 const generatePPT = async () => {
-  if (!pptForm.topic.trim()) {
-    ElMessage.warning('Please enter PPT topic')
+  if (!pptOutline.value) {
+    ElMessage.warning('Please generate an outline first.')
     return
   }
   
   pptLoading.value = true
-  pptOutline.value = ''
   pptResultUrl.value = ''
   pptPreviewUrl.value = ''
-  pptTaskStatus.value = ''
+  let originalStatus = pptTaskStatus.value;
   try {
-    // 第一步：生成 PPT 大纲
-    console.log('【调试】第一步：生成 PPT 大纲:', pptForm.topic)
-    const outlineResponse = await aiGeneratePPTOutlineApi({
-      topic: pptForm.topic,
-      pages: pptForm.pages,
-      style: pptForm.style
-    }) as any
-    
-    console.log('【调试】大纲生成响应:', outlineResponse)
-    
-    if (outlineResponse.code !== 0) {
-      ElMessage.error(outlineResponse.message || 'Failed to generate PPT outline')
-      return
-    }
-    
-    const outlineData = outlineResponse.data
-    pptOutline.value = outlineData.markdownOutline || ''
-    pptPagesCount.value = outlineData.pages || pptForm.pages
-    
-    console.log('【调试】PPT 大纲已生成，共 ' + pptPagesCount.value + ' 页')
-    ElMessage.success('PPT outline generated, creating task...')
-    
-    // 第二步：创建 PPT 任务（根据大纲生成实际 PPT）
-    console.log('【调试】第二步：创建 PPT 任务')
+    pptTaskStatus.value = 'SUBMITTED'
+    console.log('【调试】第二步：创建 PPT 任务 (Engine: ' + pptForm.engine + ')')
     const formData = new FormData()
-    formData.append('prompt', "主questions：" + pptForm.topic + "\n" + "大纲要求：" + pptOutline.value)
+    formData.append('prompt', "主题：" + pptForm.topic + "\n大纲要求：" + pptOutline.value)
     formData.append('pages', pptForm.pages.toString())
     if (pptForm.style) {
       formData.append('style', pptForm.style)
     }
-    
-    let taskResponse: any;
+
+    let taskResponse;
     if (pptForm.engine === 'gamma') {
       taskResponse = await createGammaPPTTaskApi(formData) as any;
     } else {
       taskResponse = await createPPTTaskApi(formData) as any;
     }
-    
+
     console.log('【调试】PPT 任务创建响应:', taskResponse)
     
     if (taskResponse.code !== 0) {
+      pptTaskStatus.value = originalStatus;
       ElMessage.error(taskResponse.message || 'Failed to create PPT task')
+      pptLoading.value = false;
       return
     }
     
     const taskData = taskResponse.data
     pptTaskId.value = taskData.recordId
     pptTaskStatus.value = taskData.status
-    if (taskData.credits) pptCredits.value = taskData.credits
+    if (taskData.credits) { pptCredits.value = taskData.credits }
     
     console.log('【调试】PPT task created，ID:', pptTaskId.value, 'Status:', taskData.status)
     ElMessage.success(`PPT task created (ID: ${pptTaskId.value})，Status: ${taskData.status}`)
     
-    // 第三步：定时查询任务Status
     if (pptTaskId.value) {
-      // 启动轮询，每 5 秒查询一次Status
       let pollCount = 0
-      const maxPolls = 60  // 最多轮询 60 次（5分钟）
-      
+      const maxPolls = 60
       const pollInterval = setInterval(async () => {
         if (pollCount >= maxPolls) {
           clearInterval(pollInterval)
-          ElMessage.warning('PPT generation timed out, please wait or manually query later')
+          ElMessage.warning('PPT generation timed out')
+          pptLoading.value = false;
           return
         }
-        
         try {
-          const statusResponse = await getPPTTaskByIdApi(pptTaskId.value!) as any
+          const statusResponse = await getPPTTaskByIdApi(pptTaskId.value) as any
           if (statusResponse.code === 0) {
             const status = statusResponse.data.status
             pptTaskStatus.value = status
-            console.log('【调试】PPT 任务Status查询:', status)
+            if (statusResponse.data.credits) { pptCredits.value = statusResponse.data.credits }
             
             if (status === 'SUCCESS') {
               clearInterval(pollInterval)
@@ -996,36 +976,25 @@ const generatePPT = async () => {
               
               const data = statusResponse.data;
               pptResultUrl.value = data.resultFileUrl || data.downloadUrl
+              pptPreviewUrl.value = data.remoteDownloadUrl || data.downloadUrl || data.resultFileUrl
               
-              // 优先使用远端公网 URL 进行预览（Office 预览需公网 HTTPS）
-              pptPreviewUrl.value = data.remoteDownloadUrl || data.resultFileUrl || data.downloadUrl
-              
-              // 若链接为内网 HTTP（如含端口号 9000 且不是从公网访问），微软预览大概率会报错，但依然保留 iframe 和显式的下载Notice
-              
-              ElMessage.success('PPT generation successful!')
-              console.log('【调试】PPT 下载链接:', pptResultUrl.value)
-              console.log('【调试】PPT 预览链接:', pptPreviewUrl.value)
             } else if (status === 'FAILED' || status === 'RESULT_SYNC_FAILED') {
               clearInterval(pollInterval)
               pptLoading.value = false
-              ElMessage.error(`PPT generation failed: ${statusResponse.data.errorMessage || status}`)
+              ElMessage.error(`Task Failed: ${statusResponse.data.errorMessage || 'Unknown Error'}`)
             }
           }
-        } catch (error) {
-          console.error('【调试】查询 PPT 任务Status失败:', error)
-          clearInterval(pollInterval)
-          pptLoading.value = false
+        } catch (pollErr) {
+          console.error('Poll failed:', pollErr)
         }
-        
         pollCount++
-      }, 5000)  // 5 秒查询一次
-    } else {
-      pptLoading.value = false
+      }, 5000)
     }
-  } catch (error: any) {
-    console.error('【调试】PPT 生成错误:', error)
+  } catch (error) {
+    console.error('【出错】生成 PPT 异常:', error)
+    ElMessage.error('Failed to start task: ' + (error.message || error))
+    pptTaskStatus.value = 'FAILED'
     pptLoading.value = false
-    ElMessage.error(`PPT generation failed: ${error.message || 'Please try again'}`)
   }
 }
 
