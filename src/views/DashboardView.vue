@@ -132,16 +132,42 @@
                       <el-option :label="$t('dashboard_mod.styleTech')" value="tech" />
                     </el-select>
                   </el-form-item>
+                  
+                  <el-form-item label="AI Engine">
+                    <el-radio-group v-model="pptForm.engine" style="width: 100%; display: flex;">
+                      <el-radio-button label="xunfei" style="flex: 1; text-align: center;">Xunfei (Fast)</el-radio-button>
+                      <el-radio-button label="gamma" style="flex: 1; text-align: center;">Gamma (Smart)</el-radio-button>
+                    </el-radio-group>
+                  </el-form-item>
+
                   <el-button 
+                    v-if="!pptOutline && pptTaskStatus !== 'PROCESSING' && pptTaskStatus !== 'SUBMITTED'"
                     type="primary" 
                     size="large" 
                     style="width: 100%; margin-top: 10px;"
-                    @click="generatePPT"
-                    :loading="pptLoading"
-                    :disabled="pptLoading"
+                    @click="generatePPTOutline"
+                    :loading="generatingOutline"
+                    :disabled="generatingOutline"
                   >
-                    {{ pptLoading ? '⏳ ' + $t('dashboard_mod.generating') : '🚀 ' + $t('dashboard_mod.generatePptBtn') }}
+                    {{ generatingOutline ? '⏳ Generating Outline...' : '📝 Generate PPT Outline' }}
                   </el-button>
+
+                  <div v-if="pptOutline || pptTaskStatus === 'PROCESSING' || pptTaskStatus === 'SUBMITTED'" style="margin-top: 15px; border-top: 1px solid #ebeef5; padding-top: 15px;">
+                    <el-button 
+                      type="success" 
+                      size="large" 
+                      style="width: 100%;"
+                      @click="generatePPT"
+                      :loading="pptLoading"
+                      :disabled="pptLoading"
+                    >
+                      {{ pptLoading ? '⏳ ' + $t('dashboard_mod.generating') : '🚀 ' + $t('dashboard_mod.generatePptBtn') }}
+                    </el-button>
+                    
+                    <div v-if="pptOutline && (!pptLoading || (pptTaskStatus !== 'PROCESSING' && pptTaskStatus !== 'SUBMITTED'))" style="margin-top: 10px; text-align: center;">
+                       <el-button link type="info" @click="pptOutline = ''; pptTaskStatus = ''">🗑️ Reset Outline</el-button>
+                    </div>
+                  </div>
                 </el-form>
               </el-col>
               <el-col :span="16">
@@ -189,11 +215,20 @@
                   </el-result>
                 </div>
 
-                <!-- 大纲展示 -->
-                <div v-else-if="pptOutline" class="preview-box" style="background-color: #ffffff; padding: 15px; border-radius: 4px; border: 1px solid #dcdfe6; overflow-y: auto;">
-                  <div style="margin-bottom: 10px; color: #409EFF; font-weight: bold;">📄 PPT outline ({{ pptPagesCount }} 页)</div>
-                  <el-text style="white-space: pre-wrap;">{{ pptOutline }}</el-text>
-                </div>
+                <!-- 大纲展示 (可编辑) -->
+                  <div v-else-if="pptOutline" class="preview-box" style="background-color: #ffffff; padding: 15px; border-radius: 4px; border: 1px solid #dcdfe6; display: flex; flex-direction: column; height: 100%; min-height: 400px;">
+                    <div style="margin-bottom: 10px; color: #409EFF; font-weight: bold; display: flex; justify-content: space-between; align-items: center;">
+                      <span>📄 PPT Outline ({{ pptPagesCount }} Pages)</span>
+                      <el-tag size="small" type="warning">Editable outline before Generation</el-tag>
+                    </div>
+                    <el-input
+                      v-model="pptOutline"
+                      type="textarea"
+                      placeholder="Review and modify your outline here before generating the final PPT..."
+                      style="flex-grow: 1;"
+                      :input-style="{ height: '100%', minHeight: '350px', resize: 'none', padding: '10px' }"
+                    />
+                  </div>
 
                 <div v-else class="preview-box">
                   <el-empty :description="$t('dashboard_mod.noPreviewText')" />
