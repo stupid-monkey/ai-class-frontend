@@ -286,8 +286,16 @@ export const getPPTTaskByIdApi = (recordId: number) =>
   get(`/api/smart-aippt/tasks/${recordId}`)
 
 /**
- * 查询 PPT 任务Status（按远端任务 ID）
+ * 查询 PPT 状态（按远端任务 ID）
  * @param taskId 远端任务 ID
  */
 export const getPPTTaskByRemoteIdApi = (taskId: string) => 
   get(`/api/smart-aippt/tasks/remote/${taskId}`)
+
+/**
+ * 创建 Gamma PPT 任务（智能生成 PPT）
+ * @param data PPT 任务参数 FormData 包含 file, prompt, pages, style
+ */
+export const createGammaPPTTaskApi = (data: FormData) => 
+  post("/api/smart-aippt/generate/gamma", data as any)
+

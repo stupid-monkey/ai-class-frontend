@@ -4,7 +4,7 @@ export interface login {
 			id: number,
 			name: string,
 			role: string,
-			username: string,
+			school?: string, username: string,
 			mustChangePassword: boolean
 		},
 		expiresIn: number,

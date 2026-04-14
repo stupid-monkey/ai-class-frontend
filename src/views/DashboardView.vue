@@ -1,12 +1,12 @@
-<template>
+﻿<template>
   <el-container class="dashboard-container">
     <el-aside width="240px" class="sidebar">
       <div class="logo">{{ $t('dashboard.logo') }}</div>
       
       <div class="role-switch">
         <span>{{ $t('dashboard.currentRole') }} </span>
-        <el-tag :type="isTeacher ? 'primary' : 'success'" style="cursor: default;" size="large">
-          {{ isTeacher ? '👨‍🏫 ' + $t('dashboard.teacher') : '👨‍🎓 ' + $t('dashboard.student') }}
+        <el-tag :type="isAdmin ? 'warning' : (isTeacher ? 'primary' : 'success')" style="cursor: default;" size="large">
+          {{ isAdmin ? '[Admin]' : (isTeacher ? 'Teacher ' : 'Student ') }}
         </el-tag>
         <div v-if="userStore.userInfo" style="margin-top: 8px; font-size: 12px; color: #409EFF;">
           {{ userStore.userInfo.name }} (ID: {{ userStore.userInfo.id }})
@@ -19,7 +19,7 @@
         @select="handleSelectMenu" 
         class="side-menu"
       >
-        <el-sub-menu index="ai-group">
+        <el-sub-menu index="ai-group" v-if="!isAdmin">
           <template #title>
             <span> {{ $t('dashboard.aiAssistant') }}</span>
           </template>
@@ -27,15 +27,22 @@
           <el-menu-item index="ai-ppt" v-if="isTeacher"> {{ $t('dashboard.aiPpt') }}</el-menu-item>
           <el-menu-item index="ai-homework" v-if="isTeacher"> {{ $t('dashboard.aiHomework') }}</el-menu-item>
           <el-menu-item index="teacher-grading" v-if="isTeacher"> {{ $t('dashboard.teacherGrading') }}</el-menu-item>
-          <el-menu-item index="student-homework" v-if="!isTeacher"> {{ $t('dashboard.studentHomework') }}</el-menu-item>
+          <el-menu-item index="student-homework" v-if="isStudent"> {{ $t('dashboard.studentHomework') }}</el-menu-item>
         </el-sub-menu>
 
-        <el-sub-menu index="file-group">
+        <el-sub-menu index="file-group" v-if="!isAdmin">
           <template #title>
             <span> {{ $t('dashboard.fileMaterials') }}</span>
           </template>
           <el-menu-item index="file-public"> {{ $t('dashboard.publicFiles') }}</el-menu-item>
           <el-menu-item index="file-private" v-if="isTeacher"> {{ $t('dashboard.privateFiles') }}</el-menu-item>
+        </el-sub-menu>
+
+        <el-sub-menu index="admin-group" v-if="isAdmin">
+          <template #title>
+            <span> Admin Console</span>
+          </template>
+          <el-menu-item index="base-info-import">Data Import</el-menu-item>
         </el-sub-menu>
       </el-menu>
     </el-aside>
@@ -396,6 +403,11 @@
           </el-card>
         </div>
 
+        <!-- 基础数据导入 - 管理员 -->
+        <div v-if="activeMenu === 'base-info-import' && isAdmin" class="page-section" style="padding: 0; background-color: transparent; box-shadow: none;">
+          <BaseInfoImportView :in-dashboard="true" />
+        </div>
+
       </el-main>
     </el-container>
   </el-container>
@@ -518,7 +530,7 @@ import { useRouter } from 'vue-router'
 import { logoutApi } from '@/api/log'
 import { useUserStore } from '@/stores/user'
 import { ArrowDown, Loading, Download, CircleCheckFilled, Document } from '@element-plus/icons-vue'
-import { aiChatApi, aiGenerateHomeworkApi, publishHomeworkApi, aiGeneratePPTOutlineApi, getHomeworkPublishTargetsApi, createPPTTaskApi, getPPTTaskByIdApi } from '@/api/ai'
+import { aiChatApi, aiGenerateHomeworkApi, publishHomeworkApi, aiGeneratePPTOutlineApi, getHomeworkPublishTargetsApi, createPPTTaskApi, createGammaPPTTaskApi, getPPTTaskByIdApi } from '@/api/ai'
 import {
   uploadCourseResourceApi,
   getTeacherCourseResourceListApi,
@@ -536,6 +548,7 @@ import TeacherHomeworkListView from './TeacherHomeworkListView.vue'
 import TeacherGradingView from './TeacherGradingView.vue'
 import StudentHomeworkView from './StudentHomeworkView.vue'
 import HomeworkDetailView from './HomeworkDetailView.vue'
+import BaseInfoImportView from './BaseInfoImportView.vue'
 
 import { useI18n } from 'vue-i18n'
 
@@ -571,6 +584,8 @@ const isLoading = ref(false)
 
 // 从 store 获取当前登录用户的角色
 const isTeacher = computed(() => userStore.isTeacher)
+const isStudent = computed(() => userStore.isStudent)
+const isAdmin = computed(() => userStore.isAdmin)
 
 // 安全拦截：学生不能访问教师专属菜单
 watch(isTeacher, (newVal) => {
@@ -846,6 +861,7 @@ const sendMessage = async () => {
 
 // PPT 生成
 const pptForm = reactive({
+  engine: 'xunfei',
   topic: '',
   pages: 10,
   style: 'simple'
@@ -857,6 +873,37 @@ const pptTaskId = ref<number | null>(null)  // 创建的 PPT 任务 ID
 const pptTaskStatus = ref('')  // PPT 任务Status
 const pptResultUrl = ref('') // PPT 结果URL (用于下载)
 const pptPreviewUrl = ref('') // PPT 预览URL (可能需要外网可访问的URL)
+const pptCredits = ref<any>({ deducted: null, remaining: null })
+const generatingOutline = ref(false)
+
+
+const generatePPTOutline = async () => {
+  if (!pptForm.topic.trim()) {
+    ElMessage.warning('Please enter PPT topic')
+    return
+  }
+  generatingOutline.value = true
+  pptOutline.value = ''
+  try {
+    const outlineResponse = await aiGeneratePPTOutlineApi({
+      topic: pptForm.topic,
+      pages: pptForm.pages,
+      style: pptForm.style
+    }) as any
+    if (outlineResponse.code !== 0) {
+      ElMessage.error(outlineResponse.message || 'Failed to generate PPT outline')
+      return
+    }
+    pptOutline.value = outlineResponse.data.markdownOutline || ''
+    pptPagesCount.value = outlineResponse.data.pages || pptForm.pages
+    pptTaskStatus.value = 'OUTLINE_GENERATED'
+    ElMessage.success('PPT outline generated! Please review and modify it, or click Generate PPT to proceed.')
+  } catch (error: any) {
+    ElMessage.error('Failed to generate outline: ' + error.message)
+  } finally {
+    generatingOutline.value = false
+  }
+}
 
 const generatePPT = async () => {
   if (!pptForm.topic.trim()) {
@@ -901,7 +948,12 @@ const generatePPT = async () => {
       formData.append('style', pptForm.style)
     }
     
-    const taskResponse = await createPPTTaskApi(formData) as any
+    let taskResponse: any;
+    if (pptForm.engine === 'gamma') {
+      taskResponse = await createGammaPPTTaskApi(formData) as any;
+    } else {
+      taskResponse = await createPPTTaskApi(formData) as any;
+    }
     
     console.log('【调试】PPT 任务创建响应:', taskResponse)
     
@@ -913,6 +965,7 @@ const generatePPT = async () => {
     const taskData = taskResponse.data
     pptTaskId.value = taskData.recordId
     pptTaskStatus.value = taskData.status
+    if (taskData.credits) pptCredits.value = taskData.credits
     
     console.log('【调试】PPT task created，ID:', pptTaskId.value, 'Status:', taskData.status)
     ElMessage.success(`PPT task created (ID: ${pptTaskId.value})，Status: ${taskData.status}`)

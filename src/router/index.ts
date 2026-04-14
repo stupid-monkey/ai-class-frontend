@@ -127,3 +127,6 @@ router.afterEach((to) => {
 })
 
 export default router
+
+// Additional route for BaseInfoImportView
+router.addRoute({ path: '/admin/base-info-import', name: 'BaseInfoImport', component: () => import('@/views/BaseInfoImportView.vue'), meta: { requiresAuth: true, title: '基础数据导入' } });

@@ -5,6 +5,7 @@ export interface UserInfo {
   id: string | number
   username: string
   name: string
+  school?: string
   email?: string
   role?: string
 }
@@ -15,7 +16,7 @@ export const useUserStore = defineStore('user', () => {
   const role = ref<string>('')
   const mustChangePassword = ref<boolean>(false)
 
-  // 从 localStorage 初始化
+  // �?localStorage 初始�?
   const initFromLocalStorage = () => {
     const savedToken = localStorage.getItem('token')
     const savedUserInfo = localStorage.getItem('userInfo')
@@ -40,14 +41,15 @@ export const useUserStore = defineStore('user', () => {
     }
   }
 
-  // 计算属性：是否已登录
+  // 计算属性：是否已登�?
   const isLoggedIn = computed(() => !!token.value)
 
-  // 计算属性：是否是教师
+  // 计算属性：是否是教�?
   const isTeacher = computed(() => role.value === 'teacher')
 
-  // 计算属性：是否是学生
+  // 计算属性：是否是学�?
   const isStudent = computed(() => role.value === 'student')
+  const isAdmin = computed(() => role.value === 'admin')
 
   // 设置用户信息
   const setUser = (newToken: string, newUserInfo: UserInfo, newRole: string, needChangePassword: boolean = false) => {
@@ -56,14 +58,14 @@ export const useUserStore = defineStore('user', () => {
     role.value = newRole
     mustChangePassword.value = needChangePassword
 
-    // 同时保存到 localStorage
+    // 同时保存�?localStorage
     localStorage.setItem('token', newToken)
     localStorage.setItem('userInfo', JSON.stringify(newUserInfo))
     localStorage.setItem('role', newRole)
     localStorage.setItem('mustChangePassword', JSON.stringify(needChangePassword))
   }
 
-  // 登出 - 清除所有用户信息
+  // 登出 - 清除所有用户信�?
   const logout = () => {
     token.value = ''
     userInfo.value = null
@@ -77,7 +79,7 @@ export const useUserStore = defineStore('user', () => {
     localStorage.removeItem('mustChangePassword')
   }
 
-  // 更新用户信息（不清除 token）
+  // 更新用户信息（不清除 token�?
   const updateUserInfo = (newUserInfo: Partial<UserInfo>) => {
     if (userInfo.value) {
       userInfo.value = { ...userInfo.value, ...newUserInfo }
@@ -93,9 +95,11 @@ export const useUserStore = defineStore('user', () => {
     isLoggedIn,
     isTeacher,
     isStudent,
+    isAdmin,
     initFromLocalStorage,
     setUser,
     logout,
     updateUserInfo
   }
 })
+

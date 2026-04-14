@@ -30,6 +30,11 @@
             <span>👨‍🏫 {{ $t('login.teacherLogin') }}</span>
           </template>
         </el-tab-pane>
+        <el-tab-pane name="admin">
+          <template #label>
+            <span>🛡️ 管理员登录</span>
+          </template>
+        </el-tab-pane>
       </el-tabs>
 
       <el-form :model="loginForm" @keyup.enter="handleLogin" label-width="0">
@@ -74,6 +79,7 @@
 <script setup lang="ts">
 import { ref, reactive, onMounted } from 'vue'
 import { teacherLoginApi, studentLoginApi } from '@/api/log'
+import { adminLogin } from '@/api/admin'
 import { ElMessage } from 'element-plus'
 import { useRouter, useRoute } from 'vue-router'
 import { useUserStore } from '@/stores/user'
@@ -141,7 +147,14 @@ const handleLogin = async () => {
   isLoading.value = true
   try {
     // 根据角色调用不同的登录接口
-    const loginApiCall = activeRole.value === 'teacher' ? teacherLoginApi : studentLoginApi
+    let loginApiCall
+    if (activeRole.value === 'teacher') {
+      loginApiCall = teacherLoginApi
+    } else if (activeRole.value === 'admin') {
+      loginApiCall = adminLogin
+    } else {
+      loginApiCall = studentLoginApi
+    }
     
     const res = await loginApiCall({
       username: loginForm.username,

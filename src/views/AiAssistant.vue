@@ -89,8 +89,8 @@
                       <el-button type="success" size="small">⬇️ 下载 PPT</el-button>
                     </a>
                   </div>
-                  <!-- 使用微软 Office Online 预览 -->
-                  <iframe :src="`https://view.officeapps.live.com/op/view.aspx?src=${encodeURIComponent(pptResultUrl)}`" width="100%" style="flex-grow: 1; border: 1px solid #dcdfe6; min-height: 500px;" frameborder="0"></iframe>
+                  <!-- 后端已支持将PPT转PDF预览，直接展示 -->
+                  <iframe :src="pptResultUrl" width="100%" style="flex-grow: 1; border: 1px solid #dcdfe6; min-height: 500px;" frameborder="0"></iframe>
                 </div>
 
                 <!-- 处理中Status -->
