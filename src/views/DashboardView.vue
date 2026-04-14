@@ -964,7 +964,7 @@ const generatePPT = async () => {
           return
         }
         try {
-          const statusResponse = await getPPTTaskByIdApi(pptTaskId.value) as any
+          const statusResponse = await getPPTTaskByIdApi(pptTaskId.value as number) as any
           if (statusResponse.code === 0) {
             const status = statusResponse.data.status
             pptTaskStatus.value = status
@@ -990,7 +990,7 @@ const generatePPT = async () => {
         pollCount++
       }, 5000)
     }
-  } catch (error) {
+  } catch (error: any) {
     console.error('【出错】生成 PPT 异常:', error)
     ElMessage.error('Failed to start task: ' + (error.message || error))
     pptTaskStatus.value = 'FAILED'
