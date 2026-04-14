@@ -2,19 +2,19 @@
   <div class="change-password-container">
     <div class="card">
       <div class="header">
-        <h1>{{ isFirstLogin ? '首次登录 - 修改密码' : '修改密码' }}</h1>
-        <p v-if="isFirstLogin" class="tip">为了安全起见，请在首次登录时修改密码</p>
+        <h1>{{ isFirstLogin ? 'First Login - Change Password' : 'Change Password' }}</h1>
+        <p v-if="isFirstLogin" class="tip">For security reasons, please change your password upon first login</p>
       </div>
 
       <form @submit.prevent="handleChangePassword" class="form">
         <!-- 当前密码 -->
         <div class="form-group">
-          <label for="current-password">{{ isFirstLogin ? '初始密码' : '当前密码' }} *</label>
+          <label for="current-password">{{ isFirstLogin ? 'Initial Password' : 'Current Password' }} *</label>
           <input
             id="current-password"
             v-model="form.currentPassword"
             type="password"
-            :placeholder="isFirstLogin ? '请输入管理员给定的初始密码' : '请输入当前密码'"
+            :placeholder="isFirstLogin ? 'Enter initial password provided by admin' : 'Enter current password'"
             required
             @input="validateCurrentPassword"
           />
@@ -23,12 +23,12 @@
 
         <!-- 新密码 -->
         <div class="form-group">
-          <label for="new-password">新密码 *</label>
+          <label for="new-password">New Password *</label>
           <input
             id="new-password"
             v-model="form.newPassword"
             type="password"
-            placeholder="请输入新密码（至少8位，包含大小写字母和数字）"
+            placeholder="Enter new password (at least 8 chars, with upper/lowercase & numbers)"
             required
             @input="validateNewPassword"
           />
@@ -41,12 +41,12 @@
 
         <!-- 确认新密码 -->
         <div class="form-group">
-          <label for="confirm-password">确认新密码 *</label>
+          <label for="confirm-password">Confirm New Password *</label>
           <input
             id="confirm-password"
             v-model="form.confirmPassword"
             type="password"
-            placeholder="请再次输入新密码"
+            placeholder="Enter new password again"
             required
             @input="validateConfirmPassword"
           />
@@ -60,7 +60,7 @@
             class="btn btn-primary"
             :disabled="loading || !isFormValid"
           >
-            {{ loading ? '修改中...' : '修改密码' }}
+            {{ loading ? 'Changing...' : 'Change Password' }}
           </button>
           <button
             v-if="!isFirstLogin"
@@ -69,7 +69,7 @@
             @click="handleCancel"
             :disabled="loading"
           >
-            取消
+            Cancel
           </button>
         </div>
 
@@ -86,13 +86,13 @@
 
       <!-- 首次登录Notice -->
       <div v-if="isFirstLogin" class="first-login-tips">
-        <h3>密码设置指南</h3>
+        <h3>Password Security Guidelines</h3>
         <ul>
-          <li>✓ 请输入管理员为你设置的初始密码</li>
-          <li>✓ 然后设置一个足够安全的新密码</li>
-          <li>✓ 新密码需包含：大小写字母、数字、至少8位</li>
-          <li>✓ 妥善保管好密码，不要分享给他人</li>
-          <li>✓ 定期修改密码提高安全性</li>
+          <li>✓ Please enter the initial password set by the administrator</li>
+          <li>✓ Then set a strong new password</li>
+          <li>✓ New password must contain: uppercase, lowercase, numbers, at least 8 characters</li>
+          <li>✓ Keep your password safe and do not share it</li>
+          <li>✓ Change your password regularly to improve security</li>
         </ul>
       </div>
     </div>
@@ -151,10 +151,10 @@ const strengthLevel = computed(() => {
 // 密码强度文本
 const strengthText = computed(() => {
   switch (strengthLevel.value) {
-    case 'weak': return '弱'
-    case 'fair': return '一般'
-    case 'good': return '良好'
-    case 'strong': return '强'
+    case 'weak': return 'Weak'
+    case 'fair': return 'Fair'
+    case 'good': return 'Good'
+    case 'strong': return 'Strong'
     default: return ''
   }
 })
@@ -175,9 +175,9 @@ const isFormValid = computed(() => {
 // 验证当前密码
 const validateCurrentPassword = () => {
   if (!form.value.currentPassword) {
-    errors.value.currentPassword = isFirstLogin.value ? '请输入初始密码' : '请输入当前密码'
+    errors.value.currentPassword = isFirstLogin.value ? 'Please enter initial password' : 'Please enter current password'
   } else if (form.value.currentPassword.length < 6) {
-    errors.value.currentPassword = '密码长度至少6位'
+    errors.value.currentPassword = 'Password must be at least 6 characters'
   } else {
     errors.value.currentPassword = ''
   }
@@ -187,15 +187,15 @@ const validateCurrentPassword = () => {
 const validateNewPassword = () => {
   const pwd = form.value.newPassword
   if (!pwd) {
-    errors.value.newPassword = '请输入新密码'
+    errors.value.newPassword = 'Please enter new password'
   } else if (pwd.length < 8) {
-    errors.value.newPassword = '新密码至少需要8位'
+    errors.value.newPassword = 'New password must be at least 8 characters'
   } else if (!/[a-z]/.test(pwd) || !/[A-Z]/.test(pwd)) {
-    errors.value.newPassword = '新密码需包含大小写字母'
+    errors.value.newPassword = 'Must contain uppercase and lowercase letters'
   } else if (!/\d/.test(pwd)) {
-    errors.value.newPassword = '新密码需包含数字'
+    errors.value.newPassword = 'Must contain numbers'
   } else if (pwd === form.value.currentPassword) {
-    errors.value.newPassword = '新密码不能与当前密码相同'
+    errors.value.newPassword = 'New password cannot be the same as current'
   } else {
     errors.value.newPassword = ''
   }
@@ -204,9 +204,9 @@ const validateNewPassword = () => {
 // 验证确认密码
 const validateConfirmPassword = () => {
   if (!form.value.confirmPassword) {
-    errors.value.confirmPassword = '请确认新密码'
+    errors.value.confirmPassword = 'Please confirm new password'
   } else if (form.value.confirmPassword !== form.value.newPassword) {
-    errors.value.confirmPassword = '两次输入的密码不一致'
+    errors.value.confirmPassword = 'Passwords do not match'
   } else {
     errors.value.confirmPassword = ''
   }
@@ -218,7 +218,7 @@ const handleChangePassword = async () => {
   submitSuccess.value = ''
 
   if (!isFormValid.value) {
-    submitError.value = '请完善表单信息'
+    submitError.value = 'Please complete the form properly'
     return
   }
 
@@ -233,7 +233,7 @@ const handleChangePassword = async () => {
 
     await changePasswordApi(payload)
     
-    submitSuccess.value = '密码修改成功！请重新登录'
+    submitSuccess.value = 'Password changed successfully! Please log in again'
     
     // 3秒后清除登录Status并跳转到登录页
     setTimeout(() => {
@@ -243,7 +243,7 @@ const handleChangePassword = async () => {
       router.push('/login')
     }, 2000)
   } catch (error: any) {
-    submitError.value = error.message || '密码修改失败，请检查当前密码是否正确'
+    submitError.value = error.message || 'Change failed, please check if your current password is correct'
   } finally {
     loading.value = false
   }
