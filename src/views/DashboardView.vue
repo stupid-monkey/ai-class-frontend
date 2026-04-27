@@ -119,7 +119,20 @@
             <el-row :gutter="40">
               <el-col :span="8">
                 <el-form label-position="top">
-                  <el-form-item :label="$t('dashboard_mod.pptTopic')">
+                  <el-form-item :label="$t('dashboard_mod.referenceFile') || 'Upload Reference (Optional)'">
+                      <el-upload
+                        class="upload-demo"
+                        action="#"
+                        :auto-upload="false"
+                        :limit="1"
+                        accept=".txt,.md,.csv,.docx,.pdf"
+                        :on-change="handlePptFileChange"
+                        v-model:file-list="pptForm.fileList"
+                      >
+                        <el-button size="small" type="primary" plain>Upload Reference Document</el-button>
+                      </el-upload>
+                    </el-form-item>
+                    <el-form-item :label="$t('dashboard_mod.pptTopic')">
                     <el-input v-model="pptForm.topic" type="textarea" :rows="4" :placeholder="$t('dashboard_mod.pptPlaceholder')" />
                   </el-form-item>
                   <el-form-item :label="$t('dashboard_mod.expectedPages')">
@@ -191,13 +204,13 @@
                     </div>
                   </div>
                   <!-- 使用微软 Office Online {{ $t('dashboard_mod.preview') }} -->
-                  <div style="flex-grow: 1; border: 1px solid #dcdfe6; position: relative;">
+                  <div style="flex-grow: 1; border: 1px solid #dcdfe6; position: relative; min-height: 500px; display: flex; flex-direction: column;">
                     <iframe 
                       v-if="pptPreviewUrl"
-                      :src="`https://view.officeapps.live.com/op/view.aspx?src=${encodeURIComponent(pptPreviewUrl)}`" 
+                      :src="`https://view.officeapps.live.com/op/embed.aspx?src=${encodeURIComponent(pptPreviewUrl)}`" 
                       width="100%" 
                       height="100%" 
-                      style="min-height: 500px;" 
+                      style="flex-grow: 1; min-height: 500px; border: none;" 
                       frameborder="0">
                     </iframe>
                   </div>
@@ -205,11 +218,11 @@
 
                 <!-- 处理中Status -->
                 <div v-else-if="pptTaskStatus === 'PROCESSING' || pptTaskStatus === 'SUBMITTED'" class="preview-box" style="display: flex; align-items: center; justify-content: center; height: 100%; min-height: 400px;">
-                  <el-result icon="info" title="PPT 生成Status">
+                  <el-result icon="info" title="PPT Generation Status">
                      <template #sub-title>
                         <div style="display:flex; flex-direction: column; align-items: center; gap: 10px;">
                            <el-icon class="is-loading" :size="30"><Loading /></el-icon>
-                           <span>{{ pptTaskStatus === 'PROCESSING' ? 'AI 正在分析大纲构思页面 (这可能需要几分钟)...' : '任务已推送到远端生成队列，请耐心等待...' }}</span>
+                           <span>{{ pptTaskStatus === 'PROCESSING' ? 'AI is analyzing the outline (This may take a few minutes)...' : 'Task pushed to generation queue, please wait...' }}</span>
                         </div>
                      </template>
                   </el-result>
@@ -395,7 +408,7 @@
               <el-table-column prop="originalFilename" :label="$t('dashboard_mod.fileName')" />
               <el-table-column prop="category" :label="$t('dashboard_mod.category')" width="120" />
               <el-table-column prop="publishTime" :label="$t('dashboard_mod.publishDate')" width="180" />
-              <el-table-column :label="$t('dashboard_mod.operation')" min-width="160">
+              <el-table-column :label="$t('dashboard_mod.operation')" width="160" fixed="right">
                 <template #default="{ row }">
                   <div style="display: flex; gap: 8px; flex-wrap: wrap;">
                     <el-button link type="primary" size="small" @click="previewFile(row)" style="margin-left: 0;">{{ $t('dashboard_mod.preview') }}</el-button>
@@ -427,7 +440,7 @@
                 </template>
               </el-table-column>
               <el-table-column prop="createTime" :label="$t('dashboard_mod.createDate')" width="160" />
-              <el-table-column :label="$t('dashboard_mod.operation')" min-width="260" fixed="right">
+              <el-table-column :label="$t('dashboard_mod.operation')" width="230" fixed="right">
                 <template #default="{ row }">
                   <div style="display: flex; gap: 8px; flex-wrap: wrap;">
                     <el-button link type="primary" size="small" @click="previewFile(row)" style="margin-left: 0;">{{ $t('dashboard_mod.preview') }}</el-button>
@@ -454,14 +467,14 @@
   <!-- 作业{{ $t('dashboard_mod.publishAction') }}对话框 - 班级和学生选择 -->
   <el-dialog 
     v-model="hwPublishDialogVisible" 
-    :title="'📤 选择' + $t('dashboard_mod.publishAction') + '对象'" 
+    :title="'📤 Select ' + $t('dashboard_mod.publishAction') + ' Objects'" 
     width="500px"
     align-center
   >
     <div style="max-height: 400px; overflow-y: auto;">
       <!-- 班级选择 -->
       <div style="margin-bottom: 20px;">
-        <p style="font-weight: bold; margin-bottom: 10px;">📚 选择班级（可多选）:</p>
+        <p style="font-weight: bold; margin-bottom: 10px;">📚 Select classes (multiple choices allowed):</p>
         <el-checkbox-group v-model="selectedClasses" style="display: flex; flex-direction: column; gap: 8px;">
           <el-checkbox 
             v-for="cls in availableClasses" 
@@ -470,7 +483,7 @@
             style="width: 100%;"
           >
             <span style="margin-left: 8px;">
-              {{ cls.name }} <el-tag :type="'info'" size="small">{{ cls.studentCount }} 人</el-tag>
+              {{ cls.name }} <el-tag :type="'info'" size="small">{{ cls.studentCount }} students</el-tag>
             </span>
           </el-checkbox>
         </el-checkbox-group>
@@ -480,10 +493,10 @@
 
       <!-- 学生选择 -->
       <div>
-        <p style="font-weight: bold; margin-bottom: 10px;">👨‍🎓 选择学生（可多选）:</p>
+        <p style="font-weight: bold; margin-bottom: 10px;">👨‍🎓 Select students (multiple choices allowed):</p>
         <el-checkbox-group v-model="selectedStudents" style="display: flex; flex-direction: column; gap: 8px;">
           <el-checkbox 
-            v-for="student in availableStudents" 
+            v-for="student in filteredStudents" 
             :key="student.id" 
             :label="student.id"
             style="width: 100%;"
@@ -499,14 +512,14 @@
 
     <template #footer>
       <span class="dialog-footer">
-        <el-button @click="hwPublishDialogVisible = false">取消</el-button>
+        <el-button @click="hwPublishDialogVisible = false">Cancel</el-button>
         <el-button 
           type="primary" 
           @click="confirmPublishHomework"
           :loading="hwPublishing"
           :disabled="hwPublishing"
         >
-          确认{{ $t('dashboard_mod.publishAction') }}
+          Confirm {{ $t('dashboard_mod.publishAction') }}
         </el-button>
       </span>
     </template>
@@ -515,7 +528,7 @@
   <!-- 上传资源对话框 -->
   <el-dialog
     v-model="uploadDialogVisible"
-    title="📤 上传课程资源"
+    :title="'📤 ' + $t('dashboard_mod.uploadCourseResource')"
     width="500px"
     @closed="handleUploadDialogClose"
   >
@@ -555,7 +568,7 @@
       </el-form-item>
     </el-form>
     <template #footer>
-      <el-button @click="uploadDialogVisible = false">取消</el-button>
+      <el-button @click="uploadDialogVisible = false">Cancel</el-button>
       <el-button type="primary" @click="confirmUploadResource" :loading="uploadingFile">{{ $t('dashboard_mod.confirmUpload') }}</el-button>
     </template>
   </el-dialog>
@@ -903,8 +916,13 @@ const pptForm = reactive({
   engine: 'xunfei',
   topic: '',
   pages: 10,
-  style: 'simple'
+  style: 'simple',
+  fileList: [] as any[]
 })
+
+const handlePptFileChange = (uploadFile: any) => {
+  pptForm.fileList = [uploadFile]
+}
 const pptLoading = ref(false)
 const pptOutline = ref('')  // PPT 大纲内容
 const pptPagesCount = ref(0)
@@ -924,11 +942,22 @@ const generatePPTOutline = async () => {
   generatingOutline.value = true
   pptOutline.value = ''
   try {
-    const outlineResponse = await aiGeneratePPTOutlineApi({
-      topic: pptForm.topic,
-      pages: pptForm.pages,
-      style: pptForm.style
-    }) as any
+    let payload: any;
+    if (pptForm.fileList && pptForm.fileList.length > 0) {
+      payload = new FormData();
+      payload.append('topic', pptForm.topic);
+      payload.append('pages', pptForm.pages.toString());
+      payload.append('style', pptForm.style);
+      payload.append('file', pptForm.fileList[0].raw);
+    } else {
+      payload = {
+        topic: pptForm.topic,
+        pages: pptForm.pages,
+        style: pptForm.style
+      };
+    }
+    
+    const outlineResponse = await aiGeneratePPTOutlineApi(payload) as any
     if (outlineResponse.code !== 0) {
       ElMessage.error(outlineResponse.message || 'Failed to generate PPT outline')
       return
@@ -962,6 +991,9 @@ const generatePPT = async () => {
     formData.append('pages', pptForm.pages.toString())
     if (pptForm.style) {
       formData.append('style', pptForm.style)
+    }
+    if (pptForm.fileList && pptForm.fileList.length > 0) {
+      formData.append('file', pptForm.fileList[0].raw)
     }
 
     let taskResponse;
@@ -1075,6 +1107,24 @@ const selectedStudents = ref<number[]>([]) // 选中的学生 ID
 // 班级和学生数据（从后端加载）
 const availableClasses = ref<Array<any>>([])
 const availableStudents = ref<Array<any>>([])
+
+// 根据选择的班级过滤学生列表
+const filteredStudents = computed(() => {
+  if (selectedClasses.value.length === 0) {
+    return availableStudents.value
+  }
+  return availableStudents.value.filter(student => 
+    student.classIds && student.classIds.some((classId: number) => selectedClasses.value.includes(classId))
+  )
+})
+
+// 当选择的班级变化时，清理掉不在过滤后列表中的已选学生
+watch(selectedClasses, () => {
+  if (selectedClasses.value.length > 0) {
+    const validStudentIds = filteredStudents.value.map(s => s.id)
+    selectedStudents.value = selectedStudents.value.filter(id => validStudentIds.includes(id))
+  }
+})
 
 const generateHomework = async () => {
   if (!hwForm.knowledge.trim()) {
@@ -1399,16 +1449,20 @@ import service from '@/api/request'
 
 const previewFile = async (row: any) => {
   try {
-    // 根据文档添加文件类型限制的前端校验
-    const supportedTypes = ['pdf', 'png', 'jpg', 'jpeg', 'gif', 'webp']
-    const ext = (row.suffix || '').toLowerCase()
-    
-    if (!supportedTypes.includes(ext)) {
-      ElMessage.warning(`[${row.originalFilename || 'This file'}] does not support online preview, please download`)
+    if (row.previewSupported === false) {
+      ElMessage.warning(row.previewStatus === 'UNSUPPORTED' ? '当前文件暂不支持在线预览' : '该资源当前不支持预览')
+      return
+    }
+    if (row.previewStatus === 'PENDING' || row.previewStatus === 'PROCESSING') {
+      ElMessage.warning('课件预览文件正在生成中，请稍后再试')
+      return
+    }
+    if (row.previewStatus === 'FAILED') {
+      ElMessage.warning('课件预览文件生成失败，请稍后重试')
       return
     }
 
-    const isTeacherRole = isTeacher.value && activeMenu.value === 'file-private'
+    const isTeacherRole = isTeacher.value
     const res = isTeacherRole 
       ? await getTeacherPreviewUrlApi(row.resourceId) as any
       : await getStudentPreviewUrlApi(row.resourceId) as any

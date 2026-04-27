@@ -184,11 +184,16 @@ export const aiGenerateHomeworkApi = (data: FormData | {
  * @param pages 页数
  * @param style 风格
  */
-export const aiGeneratePPTOutlineApi = (data: {
+export const aiGeneratePPTOutlineApi = (data: FormData | {
   topic: string
   pages?: number
   style?: string
-}) => post("/api/ai/ppt/generate", data)
+}) => {
+  const config = data instanceof FormData 
+    ? undefined 
+    : { headers: { 'Content-Type': 'application/json' } };
+  return service.post("/api/ai/ppt/generate", data, config).then(res => res as any);
+}
 
 /**
  * 获取发布对象（班级和学生列表）

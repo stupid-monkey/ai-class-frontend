@@ -32,7 +32,7 @@
         </el-tab-pane>
         <el-tab-pane name="admin">
           <template #label>
-            <span>🛡️ 管理员登录</span>
+            <span>🛡️ Admin  </span>
           </template>
         </el-tab-pane>
       </el-tabs>

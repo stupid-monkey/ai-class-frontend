@@ -80,6 +80,12 @@
               <span>✏️ Grading Score</span>
             </template>
 
+            <!-- AI Score -->
+            <el-form-item label="AI Score" style="margin-bottom: 10px;">
+              <span style="font-weight: bold; color: #67C23A; font-size: 18px;">{{ calculatedScore }}</span>
+              <span style="margin-left: 10px; color: #909399; font-size: 12px;">(Based on objective questions)</span>
+            </el-form-item>
+
             <!-- 评points输入 -->
             <el-form-item label="Score (0-100)">
               <el-input-number 
@@ -112,15 +118,6 @@
                 v-if="assignment.status !== 'REVIEWED' || isEditingGrade"
               >
                 ✅ Submit Grading
-              </el-button>
-              <el-button 
-                type="success" 
-                @click="submitAIGrading" 
-                :loading="isAIGrading"
-                style="flex: 1;"
-                v-if="assignment.status !== 'REVIEWED' || isEditingGrade"
-              >
-                🤖 AI Grade
               </el-button>
               <el-button 
                 v-else
@@ -310,8 +307,19 @@ const gradingForm = reactive({
 
 const studentName = ref('')
 const isSubmitting = ref(false)
-const isAIGrading = ref(false)
 const isEditingGrade = ref(false)
+
+const calculatedScore = computed(() => {
+  if (!homework.content || homework.content.length === 0) return 0
+  let correctCount = 0
+  for (let i = 0; i < homework.content.length; i++) {
+    const q = homework.content[i]
+    if (studentAnswers[i] && studentAnswers[i] === q.answer) {
+      correctCount++
+    }
+  }
+  return Math.round((correctCount / homework.content.length) * 100)
+})
 
 // 计算过滤后的Student列表
 const filteredStudents = computed(() => {
@@ -432,6 +440,8 @@ const loadHomeworkDetail = async () => {
           gradingForm.score = assignmentRecord.score
           gradingForm.feedback = assignmentRecord.feedback || ''
           console.log('【调试】加载已有points数:', assignmentRecord.score)
+        } else {
+          gradingForm.score = calculatedScore.value
         }
 
         console.log('【调试】作业批改信息已加载成功')
@@ -461,17 +471,6 @@ const selectStudent = (student: any) => {
   Object.assign(assignment, student)
   studentName.value = student.studentName || student.name || 'Student'
   
-  // 重置批改表单
-  if (student.score !== null && student.score !== undefined) {
-    gradingForm.score = student.score
-    gradingForm.feedback = student.feedback || ''
-    isEditingGrade.value = false
-  } else {
-    gradingForm.score = null
-    gradingForm.feedback = ''
-    isEditingGrade.value = false
-  }
-  
   // 加载Student's answers
   if (student.answers && Array.isArray(student.answers)) {
     for (const ans of student.answers) {
@@ -479,6 +478,17 @@ const selectStudent = (student: any) => {
       studentAnswers[idx] = ans.answer
       console.log('【调试】加载答案:', idx, '=', ans.answer)
     }
+  }
+  
+  // 重置批改表单
+  if (student.score !== null && student.score !== undefined) {
+    gradingForm.score = student.score
+    gradingForm.feedback = student.feedback || ''
+    isEditingGrade.value = false
+  } else {
+    gradingForm.score = calculatedScore.value
+    gradingForm.feedback = ''
+    isEditingGrade.value = false
   }
   
   console.log('【调试】Student信息已更新')
@@ -533,52 +543,6 @@ const submitGrading = async () => {
     ElMessage.error(`Grading failed: ${error.message}`)
   } finally {
     isSubmitting.value = false
-  }
-}
-
-const submitAIGrading = async () => {
-  isAIGrading.value = true
-  try {
-    const response = await reviewHomeworkApi(homework.homeworkId, {
-      studentId: assignment.studentId,
-      reviewMode: 'ai'
-    }) as any
-
-    if (response.code === 0) {
-      ElMessage.success('AI Grading successful!')
-      assignment.status = 'REVIEWED'
-      assignment.reviewSource = 'AI'
-      
-      // Update form values with AI response
-      if (response.data) {
-        gradingForm.score = response.data.score
-        gradingForm.feedback = response.data.feedback
-        assignment.score = response.data.score
-        assignment.feedback = response.data.feedback
-      }
-      
-      assignment.reviewedAt = new Date().toISOString()
-      isEditingGrade.value = false
-      
-      // Update student list
-      const student = allStudnets.value.find((s: any) => s.studentId === assignment.studentId)
-      if (student) {
-        student.status = 'REVIEWED'
-        student.reviewSource = 'AI'
-        if (response.data) {
-          student.score = response.data.score
-          student.feedback = response.data.feedback
-        }
-        student.reviewedAt = new Date().toISOString()
-      }
-    } else {
-      ElMessage.error(response.message || 'AI Grading failed')
-    }
-  } catch (error: any) {
-    console.error('AI Grading failed:', error)
-    ElMessage.error(`AI Grading failed: ${error.message}`)
-  } finally {
-    isAIGrading.value = false
   }
 }
 
