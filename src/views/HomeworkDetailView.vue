@@ -1,7 +1,9 @@
 <template>
   <el-container class="detail-container">
     <el-header class="top-header">
-      <el-button type="primary" link icon="ArrowLeft" @click="goBack">← {{ $t('hw_detail.back') }}</el-button>
+      <el-button type="primary" link icon="ArrowLeft" @click="goBack"
+        >← {{ $t('hw_detail.back') }}</el-button
+      >
       <span class="page-title">📖 {{ $t('hw_detail.title') }}</span>
       <span></span>
     </el-header>
@@ -12,8 +14,12 @@
         <el-col :xs="24" :md="16">
           <el-card shadow="hover">
             <template #header>
-              <div style="display: flex; justify-content: space-between; align-items: center;">
-                <span>📝 {{ homework.knowledge }} ({{ $t('hw_detail.total_q', {count: homework.questionCount}) }})</span>
+              <div style="display: flex; justify-content: space-between; align-items: center">
+                <span
+                  >📝 {{ homework.knowledge }} ({{
+                    $t('hw_detail.total_q', { count: homework.questionCount })
+                  }})</span
+                >
                 <el-tag :type="getStatusType(homework.assignmentStatus)">
                   {{ getStatusLabel(homework.assignmentStatus) }}
                 </el-tag>
@@ -41,38 +47,47 @@
 
                 <!-- 答questions区域 -->
                 <div class="answer-area">
-                  <el-radio-group 
-                    v-if="question.type === 'choice'" 
+                  <el-radio-group
+                    v-if="question.type === 'choice'"
                     v-model="studentAnswers[Number(idx)]"
                     :disabled="homework.assignmentStatus !== 'ASSIGNED'"
                   >
-                    <el-radio 
-                      v-for="(option, oIdx) in question.options" 
+                    <el-radio
+                      v-for="(option, oIdx) in question.options"
                       :key="oIdx"
                       :label="String.fromCharCode(65 + Number(oIdx))"
-                      style="display: block; margin-bottom: 8px;"
+                      style="display: block; margin-bottom: 8px"
                     >
                       {{ option }}
                     </el-radio>
                   </el-radio-group>
 
-                  <el-radio-group 
-                    v-else 
+                  <el-radio-group
+                    v-else
                     v-model="studentAnswers[Number(idx)]"
                     :disabled="homework.assignmentStatus !== 'ASSIGNED'"
                   >
-                    <el-radio label="正确" style="margin-right: 20px;">✓ {{ $t('hw_detail.correct') }}</el-radio>
+                    <el-radio label="正确" style="margin-right: 20px"
+                      >✓ {{ $t('hw_detail.correct') }}</el-radio
+                    >
                     <el-radio label="错误">✗ {{ $t('hw_detail.incorrect') }}</el-radio>
                   </el-radio-group>
                 </div>
 
                 <!-- 显示标准答案和解析（如果Reviewed） -->
-                <div v-if="homework.assignmentStatus === 'REVIEWED' || homework.currentAssignment?.status === 'REVIEWED'" class="answer-display">
+                <div
+                  v-if="
+                    homework.assignmentStatus === 'REVIEWED' ||
+                    homework.currentAssignment?.status === 'REVIEWED'
+                  "
+                  class="answer-display"
+                >
                   <div class="standard-answer">
                     <strong>{{ $t('hw_detail.std_ans') }}:</strong> {{ question.answer }}
                   </div>
                   <div class="explanation">
-                    <strong>{{ $t('hw_detail.explanation') }}:</strong> {{ question.explanation || $t('hw_detail.no_exp') }}
+                    <strong>{{ $t('hw_detail.explanation') }}:</strong>
+                    {{ question.explanation || $t('hw_detail.no_exp') }}
                   </div>
                 </div>
 
@@ -82,9 +97,9 @@
               <!-- 备注输入 -->
               <div v-if="homework.assignmentStatus === 'ASSIGNED'" class="note-area">
                 <el-form-item :label="$t('hw_detail.note')">
-                  <el-input 
-                    v-model="submitNote" 
-                    type="textarea" 
+                  <el-input
+                    v-model="submitNote"
+                    type="textarea"
                     :rows="3"
                     :placeholder="$t('hw_detail.note_place')"
                   />
@@ -93,7 +108,12 @@
 
               <!-- 提交按钮 -->
               <div v-if="homework.assignmentStatus === 'ASSIGNED'" class="submit-area">
-                <el-button type="primary" @click="submitHomework" :loading="isSubmitting" size="large">
+                <el-button
+                  type="primary"
+                  @click="submitHomework"
+                  :loading="isSubmitting"
+                  size="large"
+                >
                   ✅ {{ $t('hw_detail.submit') }}
                 </el-button>
               </div>
@@ -108,19 +128,33 @@
               <span>📋 {{ $t('hw_detail.hw_info') }}</span>
             </template>
 
-            <el-descriptions :column="1" border style="margin-bottom: 20px;">
-              <el-descriptions-item :label="$t('hw_detail.teacher')">{{ homework.teacherName }}</el-descriptions-item>
-              <el-descriptions-item :label="$t('hw_detail.knowledge')">{{ homework.knowledge }}</el-descriptions-item>
+            <el-descriptions :column="1" border style="margin-bottom: 20px">
+              <el-descriptions-item :label="$t('hw_detail.teacher')">{{
+                homework.teacherName
+              }}</el-descriptions-item>
+              <el-descriptions-item :label="$t('hw_detail.knowledge')">{{
+                homework.knowledge
+              }}</el-descriptions-item>
               <el-descriptions-item :label="$t('hw_detail.diff')">
                 <el-tag :type="getDifficultyType(homework.difficulty)">
-                  {{ homework.difficulty === 'easy' ? $t('hw_detail.easy') : homework.difficulty === 'medium' ? $t('hw_detail.medium') : $t('hw_detail.hard') }}
+                  {{
+                    homework.difficulty === 'easy'
+                      ? $t('hw_detail.easy')
+                      : homework.difficulty === 'medium'
+                        ? $t('hw_detail.medium')
+                        : $t('hw_detail.hard')
+                  }}
                 </el-tag>
               </el-descriptions-item>
               <el-descriptions-item :label="$t('hw_detail.q_type')">
                 {{ homework.questionTypes.map(mapQuestionType).join('、') }}
               </el-descriptions-item>
-              <el-descriptions-item :label="$t('hw_detail.q_count')">{{ homework.questionCount }}</el-descriptions-item>
-              <el-descriptions-item :label="$t('hw_detail.pub_time')">{{ formatTime(homework.createdAt) }}</el-descriptions-item>
+              <el-descriptions-item :label="$t('hw_detail.q_count')">{{
+                homework.questionCount
+              }}</el-descriptions-item>
+              <el-descriptions-item :label="$t('hw_detail.pub_time')">{{
+                formatTime(homework.createdAt)
+              }}</el-descriptions-item>
               <el-descriptions-item :label="$t('hw_detail.class')">
                 {{ homework.classNames?.join('、') || '-' }}
               </el-descriptions-item>
@@ -135,15 +169,39 @@
                 <el-descriptions-item :label="$t('hw_detail.sub_time')">
                   {{ formatTime(homework.currentAssignment.submittedAt) }}
                 </el-descriptions-item>
-                <el-descriptions-item v-if="homework.currentAssignment.note" :label="$t('hw_detail.your_note')">
+                <el-descriptions-item
+                  v-if="homework.currentAssignment.note"
+                  :label="$t('hw_detail.your_note')"
+                >
                   {{ homework.currentAssignment.note }}
                 </el-descriptions-item>
-                <el-descriptions-item v-if="homework.currentAssignment.score !== null" :label="$t('hw_detail.score') || 'Score'">
-                  <el-tag type="success" size="large">{{ homework.currentAssignment.score }} {{ $t('hw_detail.score_unit') || 'Points' }}</el-tag>
-                  <el-tag v-if="homework.currentAssignment.reviewSource === 'AI'" type="info" size="small" style="margin-left: 8px;">AI Graded</el-tag>
-                  <el-tag v-else-if="homework.currentAssignment.reviewSource === 'TEACHER'" type="primary" size="small" style="margin-left: 8px;">Teacher Graded</el-tag>
+                <el-descriptions-item
+                  v-if="homework.currentAssignment.score !== null"
+                  :label="$t('hw_detail.score') || 'Score'"
+                >
+                  <el-tag type="success" size="large"
+                    >{{ homework.currentAssignment.score }}
+                    {{ $t('hw_detail.score_unit') || 'Points' }}</el-tag
+                  >
+                  <el-tag
+                    v-if="homework.currentAssignment.reviewSource === 'AI'"
+                    type="info"
+                    size="small"
+                    style="margin-left: 8px"
+                    >AI Graded</el-tag
+                  >
+                  <el-tag
+                    v-else-if="homework.currentAssignment.reviewSource === 'TEACHER'"
+                    type="primary"
+                    size="small"
+                    style="margin-left: 8px"
+                    >Teacher Graded</el-tag
+                  >
                 </el-descriptions-item>
-                <el-descriptions-item v-if="homework.currentAssignment.feedback" :label="$t('hw_detail.feedback') || 'Feedback'">
+                <el-descriptions-item
+                  v-if="homework.currentAssignment.feedback"
+                  :label="$t('hw_detail.feedback') || 'Feedback'"
+                >
                   {{ homework.currentAssignment.feedback }}
                 </el-descriptions-item>
               </el-descriptions>
@@ -186,7 +244,7 @@ const homework = reactive<any>({
   classNames: [],
   createdAt: '',
   assignmentStatus: 'ASSIGNED',
-  currentAssignment: null
+  currentAssignment: null,
 })
 
 const studentAnswers = reactive<{ [key: number]: string }>({})
@@ -194,7 +252,13 @@ const submitNote = ref('')
 const isSubmitting = ref(false)
 
 const mapQuestionType = (type: string) => {
-  return type === 'choice' ? t('hw_detail.choice') : type === 'judge' ? t('hw_detail.judge') : type === 'blank' ? t('hw_detail.blank') : type
+  return type === 'choice'
+    ? t('hw_detail.choice')
+    : type === 'judge'
+      ? t('hw_detail.judge')
+      : type === 'blank'
+        ? t('hw_detail.blank')
+        : type
 }
 
 const getStatusType = (status: string) => {
@@ -248,7 +312,7 @@ const loadHomeworkDetail = async () => {
 
   try {
     console.log('【调试】加载作业详情:', homeworkId)
-    const response = await getHomeworkDetailApi(parseInt(homeworkId)) as any
+    const response = (await getHomeworkDetailApi(parseInt(homeworkId))) as any
     console.log('【调试】作业详情响应:', response)
 
     if (response.code === 0 && response.data) {
@@ -275,7 +339,7 @@ const loadHomeworkDetail = async () => {
 const submitHomework = async () => {
   // 检查是否所有questions目都已回答
   const emptyQuestions = homework.content
-    .map((q: any, idx: number) => !studentAnswers[idx] ? idx + 1 : null)
+    .map((q: any, idx: number) => (!studentAnswers[idx] ? idx + 1 : null))
     .filter((x: any) => x !== null)
 
   if (emptyQuestions.length > 0) {
@@ -286,16 +350,16 @@ const submitHomework = async () => {
   // 构建答案数据
   const answers = homework.content.map((q: any, idx: number) => ({
     questionIndex: idx,
-    answer: studentAnswers[idx]
+    answer: studentAnswers[idx],
   }))
 
   isSubmitting.value = true
   try {
     console.log('【调试】提交答案:', answers)
-    const response = await submitHomeworkApi(homework.homeworkId, {
+    const response = (await submitHomeworkApi(homework.homeworkId, {
       answers,
-      note: submitNote.value || undefined
-    }) as any
+      note: submitNote.value || undefined,
+    })) as any
 
     console.log('【调试】提交响应:', response)
 

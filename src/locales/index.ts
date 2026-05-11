@@ -11,7 +11,7 @@ const i18n = createI18n({
   legacy: false, // use Composition API
   locale: defaultLocale,
   fallbackLocale: 'en',
-  messages
+  messages,
 })
 
 export default i18n

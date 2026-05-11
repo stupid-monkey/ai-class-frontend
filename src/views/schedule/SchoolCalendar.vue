@@ -1,23 +1,32 @@
 <template>
   <el-card shadow="never" class="box-card calendar-card">
     <template #header>
-      <div style="display: flex; align-items: center;">
-        <span style="font-weight: bold; font-size: 16px; color: #303133;">📅 学期教学日历</span>
-        <span style="font-size: 12px; color: #909399; margin-left: 12px; background: #f4f4f5; padding: 4px 10px; border-radius: 12px;">
+      <div style="display: flex; align-items: center">
+        <span style="font-weight: bold; font-size: 16px; color: #303133">📅 学期教学日历</span>
+        <span
+          style="
+            font-size: 12px;
+            color: #909399;
+            margin-left: 12px;
+            background: #f4f4f5;
+            padding: 4px 10px;
+            border-radius: 12px;
+          "
+        >
           点击任意日期查看该周课表并进行 AI 微调
         </span>
       </div>
     </template>
-    
+
     <el-calendar v-model="currentDate" @change="handleDateChange" class="modern-calendar">
       <template #date-cell="{ data }">
-        <div 
-          class="custom-cal-cell" 
-          :class="{ 
+        <div
+          class="custom-cal-cell"
+          :class="{
             'is-selected': data.isSelected,
             'is-not-current': data.type !== 'current-month',
             'is-rest': getDayStatus(data.day) === 'CANCELED',
-            'is-class': getDayStatus(data.day) === 'NORMAL'
+            'is-class': getDayStatus(data.day) === 'NORMAL',
           }"
           @click="onCellClick(data.day)"
         >
@@ -136,8 +145,10 @@ defineExpose({ setDate })
 /* 选中Status */
 .custom-cal-cell.is-selected {
   background-color: #ecf5ff;
-  border-color: #409EFF;
-  box-shadow: 0 0 0 1px #409EFF inset, 0 4px 12px rgba(64, 158, 255, 0.15);
+  border-color: #409eff;
+  box-shadow:
+    0 0 0 1px #409eff inset,
+    0 4px 12px rgba(64, 158, 255, 0.15);
 }
 
 /* 日常/休息Status背景微调 */
@@ -159,8 +170,12 @@ defineExpose({ setDate })
   color: #606266;
   font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
 }
-.is-selected .cal-date-num { color: #409EFF; }
-.is-rest .cal-date-num { color: #F56C6C; }
+.is-selected .cal-date-num {
+  color: #409eff;
+}
+.is-rest .cal-date-num {
+  color: #f56c6c;
+}
 
 .cal-footer {
   display: flex;
@@ -177,10 +192,10 @@ defineExpose({ setDate })
 }
 .tag-rest {
   background-color: rgba(245, 108, 108, 0.1);
-  color: #F56C6C;
+  color: #f56c6c;
 }
 .tag-class {
-  background-color: #67C23A;
+  background-color: #67c23a;
   color: #ffffff;
   box-shadow: 0 2px 4px rgba(103, 194, 58, 0.3);
 }

@@ -12,7 +12,7 @@
         <el-col :xs="24" :md="14">
           <el-card shadow="hover">
             <template #header>
-              <div style="display: flex; justify-content: space-between; align-items: center;">
+              <div style="display: flex; justify-content: space-between; align-items: center">
                 <span>📖 {{ homework.knowledge }} - {{ studentName }} 's answers</span>
                 <el-tag :type="assignment.status === 'REVIEWED' ? 'success' : 'warning'">
                   {{ assignment.status === 'REVIEWED' ? 'Reviewed' : 'Pending' }}
@@ -55,7 +55,8 @@
 
                 <!-- 解析 -->
                 <div class="explanation">
-                  <strong>Explanation:</strong> {{ question.explanation || 'No explanation available' }}
+                  <strong>Explanation:</strong>
+                  {{ question.explanation || 'No explanation available' }}
                 </div>
 
                 <el-divider />
@@ -81,27 +82,31 @@
             </template>
 
             <!-- AI Score -->
-            <el-form-item label="AI Score" style="margin-bottom: 10px;">
-              <span style="font-weight: bold; color: #67C23A; font-size: 18px;">{{ calculatedScore }}</span>
-              <span style="margin-left: 10px; color: #909399; font-size: 12px;">(Based on objective questions)</span>
+            <el-form-item label="AI Score" style="margin-bottom: 10px">
+              <span style="font-weight: bold; color: #67c23a; font-size: 18px">{{
+                calculatedScore
+              }}</span>
+              <span style="margin-left: 10px; color: #909399; font-size: 12px"
+                >(Based on objective questions)</span
+              >
             </el-form-item>
 
             <!-- 评points输入 -->
             <el-form-item label="Score (0-100)">
-              <el-input-number 
-                v-model="gradingForm.score" 
-                :min="0" 
+              <el-input-number
+                v-model="gradingForm.score"
+                :min="0"
                 :max="100"
                 :disabled="assignment.status === 'REVIEWED' && !isEditingGrade"
-                style="width: 100%;"
+                style="width: 100%"
               />
             </el-form-item>
 
             <!-- Feedback -->
             <el-form-item label="Feedback">
-              <el-input 
-                v-model="gradingForm.feedback" 
-                type="textarea" 
+              <el-input
+                v-model="gradingForm.feedback"
+                type="textarea"
                 :rows="6"
                 placeholder="Enter evaluation and suggestions for the student"
                 :disabled="assignment.status === 'REVIEWED' && !isEditingGrade"
@@ -109,21 +114,17 @@
             </el-form-item>
 
             <!-- 提交按钮 -->
-            <div style="display: flex; gap: 10px;">
-              <el-button 
-                type="primary" 
-                @click="submitGrading" 
+            <div style="display: flex; gap: 10px">
+              <el-button
+                type="primary"
+                @click="submitGrading"
                 :loading="isSubmitting"
-                style="flex: 1;"
+                style="flex: 1"
                 v-if="assignment.status !== 'REVIEWED' || isEditingGrade"
               >
                 ✅ Submit Grading
               </el-button>
-              <el-button 
-                v-else
-                @click="isEditingGrade = true"
-                style="flex: 1;"
-              >
+              <el-button v-else @click="isEditingGrade = true" style="flex: 1">
                 🔄 Regrade
               </el-button>
             </div>
@@ -131,18 +132,28 @@
             <!-- 作业信息 -->
             <el-divider />
 
-            <el-descriptions :column="1" border style="margin-top: 20px;">
+            <el-descriptions :column="1" border style="margin-top: 20px">
               <el-descriptions-item label="Student">{{ studentName }}</el-descriptions-item>
               <el-descriptions-item label="Student ID">
                 {{ assignment.studentName }}
               </el-descriptions-item>
-              <el-descriptions-item label="Knowledge Point">{{ homework.knowledge }}</el-descriptions-item>
+              <el-descriptions-item label="Knowledge Point">{{
+                homework.knowledge
+              }}</el-descriptions-item>
               <el-descriptions-item label="Difficulty">
                 <el-tag :type="getDifficultyType(homework.difficulty)">
-                  {{ homework.difficulty === 'easy' ? 'Easy' : homework.difficulty === 'medium' ? 'Medium' : 'Hard' }}
+                  {{
+                    homework.difficulty === 'easy'
+                      ? 'Easy'
+                      : homework.difficulty === 'medium'
+                        ? 'Medium'
+                        : 'Hard'
+                  }}
                 </el-tag>
               </el-descriptions-item>
-              <el-descriptions-item label="questions目数">{{ homework.questionCount }}</el-descriptions-item>
+              <el-descriptions-item label="questions目数">{{
+                homework.questionCount
+              }}</el-descriptions-item>
               <el-descriptions-item label="Submission Time">
                 {{ formatTime(assignment.submittedAt) }}
               </el-descriptions-item>
@@ -157,43 +168,43 @@
         <el-col :xs="24" :md="10">
           <el-card shadow="hover" class="students-list-panel">
             <template #header>
-              <div style="display: flex; justify-content: space-between; align-items: center;">
+              <div style="display: flex; justify-content: space-between; align-items: center">
                 <span>👥 Student Submissions ({{ allStudnets.length }})</span>
                 <el-tag>{{ pendingCount }} Pending | {{ reviewedCount }} Reviewed</el-tag>
               </div>
             </template>
 
             <!-- 筛选标签 -->
-            <div style="margin-bottom: 12px; display: flex; gap: 8px; flex-wrap: wrap;">
-              <el-button 
+            <div style="margin-bottom: 12px; display: flex; gap: 8px; flex-wrap: wrap">
+              <el-button
                 :type="studentFilter === 'all' ? 'primary' : 'default'"
                 size="small"
                 @click="studentFilter = 'all'"
               >
                 All ({{ allStudnets.length }})
               </el-button>
-              <el-button 
+              <el-button
                 :type="studentFilter === 'submitted' ? 'primary' : 'default'"
                 size="small"
                 @click="studentFilter = 'submitted'"
               >
                 Submitted ({{ submittedCount }})
               </el-button>
-              <el-button 
+              <el-button
                 :type="studentFilter === 'unsubmitted' ? 'primary' : 'default'"
                 size="small"
                 @click="studentFilter = 'unsubmitted'"
               >
                 Not Submitted ({{ unsubmittedCount }})
               </el-button>
-              <el-button 
+              <el-button
                 :type="studentFilter === 'pending' ? 'primary' : 'default'"
                 size="small"
                 @click="studentFilter = 'pending'"
               >
                 Pending ({{ pendingCount }})
               </el-button>
-              <el-button 
+              <el-button
                 :type="studentFilter === 'reviewed' ? 'primary' : 'default'"
                 size="small"
                 @click="studentFilter = 'reviewed'"
@@ -203,49 +214,40 @@
             </div>
 
             <!-- Student列表 -->
-            <el-scrollbar style="height: 600px;">
-              <div v-if="filteredStudents.length === 0" style="text-align: center; padding: 20px; color: #909399;">
+            <el-scrollbar style="height: 600px">
+              <div
+                v-if="filteredStudents.length === 0"
+                style="text-align: center; padding: 20px; color: #909399"
+              >
                 <el-empty description="No students" />
               </div>
               <div v-else>
-                <div 
-                  v-for="student in filteredStudents" 
+                <div
+                  v-for="student in filteredStudents"
                   :key="student.studentId"
                   :class="['student-item', { active: student.studentId === assignment.studentId }]"
                   @click="selectStudent(student)"
                 >
                   <div class="student-header">
-                    <div style="flex: 1;">
+                    <div style="flex: 1">
                       <div class="student-name">{{ student.studentName }}</div>
                       <div class="student-id">ID: {{ student.studentId }}</div>
                     </div>
                     <div class="status-badges">
-                      <el-tag 
-                        v-if="!student.submittedAt"
-                        type="danger"
-                        size="small"
-                      >
+                      <el-tag v-if="!student.submittedAt" type="danger" size="small">
                         Not Submitted
                       </el-tag>
-                      <el-tag 
-                        v-else-if="student.status === 'REVIEWED'"
-                        type="success"
-                        size="small"
-                      >
+                      <el-tag v-else-if="student.status === 'REVIEWED'" type="success" size="small">
                         Reviewed
                       </el-tag>
-                      <el-tag 
-                        v-else
-                        type="warning"
-                        size="small"
-                      >
-                        Pending
-                      </el-tag>
+                      <el-tag v-else type="warning" size="small"> Pending </el-tag>
                     </div>
                   </div>
                   <div v-if="student.submittedAt" class="student-meta">
                     <span>📅 {{ formatTime(student.submittedAt) }}</span>
-                    <span v-if="student.score !== null && student.score !== undefined">{{ student.score }}points</span>
+                    <span v-if="student.score !== null && student.score !== undefined"
+                      >{{ student.score }}points</span
+                    >
                   </div>
                 </div>
               </div>
@@ -282,7 +284,7 @@ const homework = reactive<any>({
   difficulty: 'medium',
   questionCount: 0,
   content: [],
-  teacherName: ''
+  teacherName: '',
 })
 
 const assignment = reactive<any>({
@@ -294,7 +296,7 @@ const assignment = reactive<any>({
   submittedAt: '',
   score: null,
   feedback: null,
-  reviewedAt: null
+  reviewedAt: null,
 })
 
 const allStudnets = ref<any[]>([])
@@ -302,7 +304,7 @@ const studentFilter = ref<'all' | 'submitted' | 'unsubmitted' | 'pending' | 'rev
 const studentAnswers = reactive<{ [key: number]: string }>({})
 const gradingForm = reactive({
   score: null as number | null,
-  feedback: ''
+  feedback: '',
 })
 
 const studentName = ref('')
@@ -340,8 +342,12 @@ const filteredStudents = computed(() => {
 // 统计数据
 const submittedCount = computed(() => allStudnets.value.filter((s: any) => s.submittedAt).length)
 const unsubmittedCount = computed(() => allStudnets.value.filter((s: any) => !s.submittedAt).length)
-const pendingCount = computed(() => allStudnets.value.filter((s: any) => s.submittedAt && s.status !== 'REVIEWED').length)
-const reviewedCount = computed(() => allStudnets.value.filter((s: any) => s.status === 'REVIEWED').length)
+const pendingCount = computed(
+  () => allStudnets.value.filter((s: any) => s.submittedAt && s.status !== 'REVIEWED').length,
+)
+const reviewedCount = computed(
+  () => allStudnets.value.filter((s: any) => s.status === 'REVIEWED').length,
+)
 
 const getDifficultyType = (difficulty: string) => {
   return difficulty === 'easy' ? 'success' : difficulty === 'medium' ? 'warning' : 'danger'
@@ -380,17 +386,22 @@ const loadHomeworkDetail = async () => {
 
   try {
     console.log('【调试】正在加载作业详情，homeworkId:', homeworkId)
-    const response = await getHomeworkDetailApi(parseInt(homeworkId)) as any
+    const response = (await getHomeworkDetailApi(parseInt(homeworkId))) as any
     console.log('【调试】作业详情响应:', response)
     console.log('【调试】响应数据结构:', JSON.stringify(response.data, null, 2))
 
     if (response.code === 0 && response.data) {
       const data = response.data
       Object.assign(homework, data)
-      
+
       console.log('【调试】homework 对象:', homework)
       console.log('【调试】assignments 数组:', data.assignments)
-      console.log('【调试】assignments 类型:', typeof data.assignments, '长度:', Array.isArray(data.assignments) ? data.assignments.length : 'N/A')
+      console.log(
+        '【调试】assignments 类型:',
+        typeof data.assignments,
+        '长度:',
+        Array.isArray(data.assignments) ? data.assignments.length : 'N/A',
+      )
 
       // 加载所有Student列表
       if (data.assignments && Array.isArray(data.assignments)) {
@@ -400,21 +411,29 @@ const loadHomeworkDetail = async () => {
 
       // 查找对应Student的提交记录 - 支持多种匹配方式
       let assignmentRecord = null
-      
+
       // 方式1: 通过 studentId 精确匹配
       if (data.assignments && Array.isArray(data.assignments)) {
         assignmentRecord = data.assignments.find((a: any) => {
-          console.log('【调试】检查Student记录:', '期望studentId=', studentId, 'a.studentId=', a.studentId, '类型匹配:', a.studentId == studentId)
+          console.log(
+            '【调试】检查Student记录:',
+            '期望studentId=',
+            studentId,
+            'a.studentId=',
+            a.studentId,
+            '类型匹配:',
+            a.studentId == studentId,
+          )
           return a.studentId == studentId || a.studentId === parseInt(studentId)
         })
       }
-      
+
       // 方式2: 如果没找到且 data 本身就是一个Student的作业（没有 assignments 数组）
       if (!assignmentRecord && !data.assignments && data.studentId) {
         console.log('【调试】使用 data 本身作为单个Student的记录')
         assignmentRecord = data
       }
-      
+
       // 方式3: 如果 data 中有 submittedAt 或 answers，说明这是一个Student的作业
       if (!assignmentRecord && !data.assignments && (data.submittedAt || data.answers)) {
         console.log('【调试】检测到 data 是单个Student作业记录')
@@ -429,7 +448,10 @@ const loadHomeworkDetail = async () => {
         // 加载Student's answers
         if (assignmentRecord.answers) {
           for (const ans of assignmentRecord.answers) {
-            const idx = typeof ans.questionIndex === 'number' ? ans.questionIndex : parseInt(ans.questionIndex)
+            const idx =
+              typeof ans.questionIndex === 'number'
+                ? ans.questionIndex
+                : parseInt(ans.questionIndex)
             studentAnswers[idx] = ans.answer
             console.log('【调试】加载答案:', idx, '=', ans.answer)
           }
@@ -446,7 +468,12 @@ const loadHomeworkDetail = async () => {
 
         console.log('【调试】作业批改信息已加载成功')
       } else {
-        console.error('【调试】未找到Student记录，assignments:', data.assignments, 'SearchstudentId:', studentId)
+        console.error(
+          '【调试】未找到Student记录，assignments:',
+          data.assignments,
+          'SearchstudentId:',
+          studentId,
+        )
         ElMessage.error('Could not find submission record for this student. Check parameters.')
         setTimeout(() => goBack(), 1000)
       }
@@ -461,25 +488,26 @@ const loadHomeworkDetail = async () => {
 
 const selectStudent = (student: any) => {
   console.log('【调试】Select student:', student)
-  
+
   // 清空之前's answers
   for (const key in studentAnswers) {
     delete (studentAnswers as any)[key]
   }
-  
+
   // 更新当前Student信息
   Object.assign(assignment, student)
   studentName.value = student.studentName || student.name || 'Student'
-  
+
   // 加载Student's answers
   if (student.answers && Array.isArray(student.answers)) {
     for (const ans of student.answers) {
-      const idx = typeof ans.questionIndex === 'number' ? ans.questionIndex : parseInt(ans.questionIndex)
+      const idx =
+        typeof ans.questionIndex === 'number' ? ans.questionIndex : parseInt(ans.questionIndex)
       studentAnswers[idx] = ans.answer
       console.log('【调试】加载答案:', idx, '=', ans.answer)
     }
   }
-  
+
   // 重置批改表单
   if (student.score !== null && student.score !== undefined) {
     gradingForm.score = student.score
@@ -490,7 +518,7 @@ const selectStudent = (student: any) => {
     gradingForm.feedback = ''
     isEditingGrade.value = false
   }
-  
+
   console.log('【调试】Student信息已更新')
 }
 
@@ -505,15 +533,15 @@ const submitGrading = async () => {
     console.log('【调试】Submit Grading:', {
       studentId: assignment.studentId,
       score: gradingForm.score,
-      feedback: gradingForm.feedback
+      feedback: gradingForm.feedback,
     })
 
-    const response = await reviewHomeworkApi(homework.homeworkId, {
+    const response = (await reviewHomeworkApi(homework.homeworkId, {
       studentId: assignment.studentId,
       reviewMode: 'manual',
       score: gradingForm.score,
-      feedback: gradingForm.feedback || undefined
-    }) as any
+      feedback: gradingForm.feedback || undefined,
+    })) as any
 
     console.log('【调试】批改响应:', response)
 
@@ -524,7 +552,7 @@ const submitGrading = async () => {
       assignment.feedback = gradingForm.feedback
       assignment.reviewedAt = new Date().toISOString()
       isEditingGrade.value = false
-      
+
       // 更新Student列表中的Status
       const student = allStudnets.value.find((s: any) => s.studentId === assignment.studentId)
       if (student) {
@@ -533,7 +561,7 @@ const submitGrading = async () => {
         student.feedback = gradingForm.feedback
         student.reviewedAt = new Date().toISOString()
       }
-      
+
       console.log('【调试】作业Status已更新为Reviewed')
     } else {
       ElMessage.error(response.message || 'Grading failed')

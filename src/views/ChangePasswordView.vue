@@ -3,18 +3,24 @@
     <div class="card">
       <div class="header">
         <h1>{{ isFirstLogin ? 'First Login - Change Password' : 'Change Password' }}</h1>
-        <p v-if="isFirstLogin" class="tip">For security reasons, please change your password upon first login</p>
+        <p v-if="isFirstLogin" class="tip">
+          For security reasons, please change your password upon first login
+        </p>
       </div>
 
       <form @submit.prevent="handleChangePassword" class="form">
         <!-- 当前密码 -->
         <div class="form-group">
-          <label for="current-password">{{ isFirstLogin ? 'Initial Password' : 'Current Password' }} *</label>
+          <label for="current-password"
+            >{{ isFirstLogin ? 'Initial Password' : 'Current Password' }} *</label
+          >
           <input
             id="current-password"
             v-model="form.currentPassword"
             type="password"
-            :placeholder="isFirstLogin ? 'Enter initial password provided by admin' : 'Enter current password'"
+            :placeholder="
+              isFirstLogin ? 'Enter initial password provided by admin' : 'Enter current password'
+            "
             required
             @input="validateCurrentPassword"
           />
@@ -55,11 +61,7 @@
 
         <!-- 按钮 -->
         <div class="form-actions">
-          <button
-            type="submit"
-            class="btn btn-primary"
-            :disabled="loading || !isFormValid"
-          >
+          <button type="submit" class="btn btn-primary" :disabled="loading || !isFormValid">
             {{ loading ? 'Changing...' : 'Change Password' }}
           </button>
           <button
@@ -115,14 +117,14 @@ const isFirstLogin = ref(false)
 const form = ref({
   currentPassword: '',
   newPassword: '',
-  confirmPassword: ''
+  confirmPassword: '',
 })
 
 // 错误信息
 const errors = ref({
   currentPassword: '',
   newPassword: '',
-  confirmPassword: ''
+  confirmPassword: '',
 })
 
 // 提交Status
@@ -134,14 +136,14 @@ const submitSuccess = ref('')
 const strengthLevel = computed(() => {
   const pwd = form.value.newPassword
   if (!pwd) return 'none'
-  
+
   let strength = 0
   if (pwd.length >= 8) strength++
   if (pwd.length >= 12) strength++
   if (/[a-z]/.test(pwd) && /[A-Z]/.test(pwd)) strength++
   if (/\d/.test(pwd)) strength++
   if (/[^a-zA-Z\d]/.test(pwd)) strength++
-  
+
   if (strength < 2) return 'weak'
   if (strength < 3) return 'fair'
   if (strength < 4) return 'good'
@@ -151,11 +153,16 @@ const strengthLevel = computed(() => {
 // 密码强度文本
 const strengthText = computed(() => {
   switch (strengthLevel.value) {
-    case 'weak': return 'Weak'
-    case 'fair': return 'Fair'
-    case 'good': return 'Good'
-    case 'strong': return 'Strong'
-    default: return ''
+    case 'weak':
+      return 'Weak'
+    case 'fair':
+      return 'Fair'
+    case 'good':
+      return 'Good'
+    case 'strong':
+      return 'Strong'
+    default:
+      return ''
   }
 })
 
@@ -175,7 +182,9 @@ const isFormValid = computed(() => {
 // 验证当前密码
 const validateCurrentPassword = () => {
   if (!form.value.currentPassword) {
-    errors.value.currentPassword = isFirstLogin.value ? 'Please enter initial password' : 'Please enter current password'
+    errors.value.currentPassword = isFirstLogin.value
+      ? 'Please enter initial password'
+      : 'Please enter current password'
   } else if (form.value.currentPassword.length < 6) {
     errors.value.currentPassword = 'Password must be at least 6 characters'
   } else {
@@ -228,13 +237,13 @@ const handleChangePassword = async () => {
     const payload = {
       token: userStore.token,
       currentPassword: form.value.currentPassword,
-      newPassword: form.value.newPassword
+      newPassword: form.value.newPassword,
     }
 
     await changePasswordApi(payload)
-    
+
     submitSuccess.value = 'Password changed successfully! Please log in again'
-    
+
     // 3秒后清除登录Status并跳转到登录页
     setTimeout(() => {
       // 清除用户登录Status
@@ -243,7 +252,8 @@ const handleChangePassword = async () => {
       router.push('/login')
     }, 2000)
   } catch (error: any) {
-    submitError.value = error.message || 'Change failed, please check if your current password is correct'
+    submitError.value =
+      error.message || 'Change failed, please check if your current password is correct'
   } finally {
     loading.value = false
   }
@@ -372,7 +382,9 @@ onMounted(() => {
   height: 100%;
   width: 100%;
   border-radius: 2px;
-  transition: width 0.3s, background-color 0.3s;
+  transition:
+    width 0.3s,
+    background-color 0.3s;
 }
 
 .strength-bar.strength-none::after {

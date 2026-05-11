@@ -1,62 +1,71 @@
-<template>
+﻿<template>
   <el-container class="homework-container">
     <el-header class="top-header">
       <span class="page-title">📖 {{ $t('student_hw.title') }}</span>
-      <el-button type="primary" @click="refreshHomeworks">🔄 {{ $t('student_hw.refresh') }}</el-button>
+      <div style="display:flex; gap:10px; align-items:center;">
+        <el-radio-group v-model="filterStatus" @change="handleFilterChange">
+          <el-radio-button label="all">{{ $t('student_hw.status_all', 'All') }}</el-radio-button>
+          <el-radio-button label="ASSIGNED">{{ $t('student_hw.unsubmit', 'Unsubmitted') }}</el-radio-button>
+          <el-radio-button label="SUBMITTED">{{ $t('student_hw.submitted', 'Submitted') }}</el-radio-button>
+          <el-radio-button label="REVIEWED">{{ $t('student_hw.reviewed', 'Reviewed') }}</el-radio-button>
+        </el-radio-group>
+        <el-button type="primary" @click="refreshHomeworks">
+          🔄 {{ $t('student_hw.refresh') }}
+        </el-button>
+      </div>
     </el-header>
 
     <el-main class="main-content">
-      <el-card shadow="hover" v-if="homeworkList.length === 0">
-        <div style="text-align: center; padding: 40px;">
-          <el-empty :description="$t('student_hw.no_hw')" />
+      <el-card shadow="never" v-loading="isLoading">
+        <el-table :data="homeworkList" border style="width: 100%">
+          <el-table-column prop="knowledge" :label="$t('student_hw.knowledge')" min-width="150" />
+          <el-table-column prop="teacherName" :label="$t('student_hw.teacher')" width="120" />
+          <el-table-column prop="questionCount" :label="$t('student_hw.q_count')" width="100" />
+          <el-table-column prop="createdAt" :label="$t('student_hw.pub_time')" width="160">
+            <template #default="{ row }">
+              {{ formatTime(row.createdAt) }}
+            </template>
+          </el-table-column>
+          <el-table-column prop="assignmentStatus" :label="$t('student_hw.status', '状态')" width="120">
+            <template #default="{ row }">
+              <el-tag :type="getStatusType(row.assignmentStatus)">
+                {{ getStatusLabel(row.assignmentStatus) }}
+              </el-tag>
+            </template>
+          </el-table-column>
+          <el-table-column prop="score" :label="$t('student_hw.score', '得分')" width="100">
+            <template #default="{ row }">
+              <span v-if="row.score !== null">{{ row.score }}</span>
+              <span v-else>-</span>
+            </template>
+          </el-table-column>
+          <el-table-column :label="$t('student_hw.action', '操作')" width="150" fixed="right">
+            <template #default="{ row }">
+              <el-button type="primary" size="small" @click="goToDetail(row.homeworkId)">
+                {{
+                  row.assignmentStatus === 'ASSIGNED'
+                    ? $t('student_hw.start')
+                    : row.assignmentStatus === 'SUBMITTED'
+                      ? $t('student_hw.view_sub')
+                      : $t('student_hw.detail')
+                }}
+              </el-button>
+            </template>
+          </el-table-column>
+        </el-table>
+
+        <div style="margin-top: 20px; display: flex; justify-content: flex-end">
+          <el-pagination
+            v-model:current-page="pageNo"
+            v-model:page-size="pageSize"
+            :page-sizes="[10, 20, 30, 50]"
+            layout="total, sizes, prev, pager, next, jumper"
+            :total="total"
+            @size-change="handleSizeChange"
+            @current-change="handleCurrentChange"
+          />
         </div>
       </el-card>
-
-      <el-row :gutter="20" v-else>
-        <el-col :xs="24" :sm="24" :md="12" :lg="8" v-for="hw in homeworkList" :key="hw.homeworkId" style="margin-bottom: 20px;">
-          <el-card class="homework-card" :body-style="{ padding: '20px' }">
-            <template #header>
-              <div style="display: flex; justify-content: space-between; align-items: center;">
-                <span>{{ hw.knowledge }}</span>
-                <el-tag :type="getStatusType(hw.assignmentStatus)">
-                  {{ getStatusLabel(hw.assignmentStatus) }}
-                </el-tag>
-              </div>
-            </template>
-
-            <div class="homework-info">
-              <div class="info-row">
-                <span class="label">📚 {{ $t('student_hw.knowledge') }}:</span>
-                <span>{{ hw.knowledge }}</span>
-              </div>
-              <div class="info-row">
-                <span class="label">📝 {{ $t('student_hw.q_type') }}:</span>
-                <span>{{ hw.questionTypes.map(mapQuestionType).join('、') }}</span>
-              </div>
-              <div class="info-row">
-                <span class="label">⭐ {{ $t('student_hw.level') }}:</span>
-                <span>{{ hw.difficulty === 'easy' ? $t('student_hw.easy') : hw.difficulty === 'medium' ? $t('student_hw.medium') : $t('student_hw.hard') }}</span>
-              </div>
-              <div class="info-row">
-                <span class="label">❓ {{ $t('student_hw.q_count') }}:</span>
-                <span>{{ hw.questionCount }}</span>
-              </div>
-              <div class="info-row">
-                <span class="label">👨‍🏫 {{ $t('student_hw.teacher') }}:</span>
-                <span>{{ hw.teacherName }}</span>
-              </div>
-              <div class="info-row">
-                <span class="label">📅 {{ $t('student_hw.pub_time') }}:</span>
-                <span>{{ formatTime(hw.createdAt) }}</span>
-              </div>
-            </div>
-
-            <el-button type="primary" @click="goToDetail(hw.homeworkId)" style="width: 100%; margin-top: 10px;">
-              {{ hw.assignmentStatus === 'ASSIGNED' ?  $t('student_hw.start') : hw.assignmentStatus === 'SUBMITTED' ? $t('student_hw.view_sub') : $t('student_hw.detail') }}
-            </el-button>
-          </el-card>
-        </el-col>
-      </el-row>
     </el-main>
   </el-container>
 </template>
@@ -66,7 +75,7 @@ import { ref, onMounted } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
-import { getHomeworkListApi } from '@/api/ai'
+import { getStudentHomeworkPageApi } from '@/api/ai'
 import { useUserStore } from '@/stores/user'
 
 const props = defineProps<{ inDashboard?: boolean }>()
@@ -79,39 +88,32 @@ const userStore = useUserStore()
 const homeworkList = ref<any[]>([])
 const isLoading = ref(false)
 
-const mapQuestionType = (type: string) => {
-  return type === 'choice' ? t('student_hw.choice') : type === 'judge' ? t('student_hw.judge') : type === 'blank' ? t('student_hw.blank') : type
-}
+const pageNo = ref(1)
+const pageSize = ref(10)
+const total = ref(0)
+const filterStatus = ref('all')
 
 const getStatusType = (status: string) => {
   switch (status) {
-    case 'ASSIGNED':
-      return 'warning'
-    case 'SUBMITTED':
-      return 'info'
-    case 'REVIEWED':
-      return 'success'
-    default:
-      return 'info'
+    case 'ASSIGNED': return 'warning'
+    case 'SUBMITTED': return 'info'
+    case 'REVIEWED': return 'success'
+    default: return 'info'
   }
 }
 
 const getStatusLabel = (status: string) => {
   switch (status) {
-    case 'ASSIGNED':
-      return t('student_hw.unsubmit')
-    case 'SUBMITTED':
-      return t('student_hw.submitted')
-    case 'REVIEWED':
-      return t('student_hw.reviewed')
-    default:
-      return status
+    case 'ASSIGNED': return t('student_hw.unsubmit', '未提交')
+    case 'SUBMITTED': return t('student_hw.submitted', '已提交')
+    case 'REVIEWED': return t('student_hw.reviewed', '已批改')
+    default: return status
   }
 }
 
 const formatTime = (time: string) => {
   if (!time) return '-'
-  return new Date(time).toLocaleString('zh-CN')
+  return new Date(time).toLocaleString('zh-CN', { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' }).replace(/\//g, '-')
 }
 
 const refreshHomeworks = async () => {
@@ -122,26 +124,39 @@ const refreshHomeworks = async () => {
 
   isLoading.value = true
   try {
-    console.log('【调试】加载学生作业列表')
-    const response = await getHomeworkListApi() as any
-    console.log('【调试】作业列表响应:', response)
+    const response = (await getStudentHomeworkPageApi({
+      pageNo: pageNo.value,
+      pageSize: pageSize.value,
+      status: filterStatus.value === 'all' ? undefined : filterStatus.value
+    })) as any
 
     if (response.code === 0) {
-      // 过滤出分配给当前学生的作业
-      homeworkList.value = (response.data || []).filter((hw: any) => {
-        return hw.viewerRole === 'student'
-      })
-      console.log('【调试】学生作业列表:', homeworkList.value)
-      ElMessage.success(t('student_hw.load_success', { num: homeworkList.value.length }))
+      homeworkList.value = response.data.records || []
+      total.value = response.data.total || 0
+      ElMessage.success(t('student_hw.load_success', { num: homeworkList.value.length }) || `加载了 ${homeworkList.value.length} 条`)
     } else {
       ElMessage.error(response.message || t('student_hw.load_fail'))
     }
   } catch (error: any) {
-    console.error('【调试】加载作业列表失败:', error)
     ElMessage.error(error.message || t('student_hw.net_fail'))
   } finally {
     isLoading.value = false
   }
+}
+
+const handleFilterChange = () => {
+  pageNo.value = 1
+  refreshHomeworks()
+}
+
+const handleSizeChange = (val: number) => {
+  pageSize.value = val
+  refreshHomeworks()
+}
+
+const handleCurrentChange = (val: number) => {
+  pageNo.value = val
+  refreshHomeworks()
 }
 
 const goToDetail = (homeworkId: number) => {
@@ -150,7 +165,7 @@ const goToDetail = (homeworkId: number) => {
   } else {
     router.push({
       path: '/homework-detail',
-      query: { id: homeworkId }
+      query: { id: homeworkId },
     })
   }
 }
@@ -167,55 +182,26 @@ onMounted(() => {
 
 <style scoped>
 .homework-container {
-  height: 100vh;
-  background-color: #f0f2f5;
+  height: 100%;
+  background-color: #f5f7fa;
 }
 
 .top-header {
-  background-color: #ffffff;
-  border-bottom: 1px solid #e6e6e6;
   display: flex;
   justify-content: space-between;
   align-items: center;
+  background-color: #fff;
+  border-bottom: 1px solid #e4e7ed;
   padding: 0 20px;
 }
 
 .page-title {
   font-size: 18px;
-  font-weight: 600;
+  font-weight: bold;
   color: #303133;
 }
 
 .main-content {
   padding: 20px;
-  overflow-y: auto;
-}
-
-.homework-card {
-  cursor: pointer;
-  transition: all 0.3s ease;
-}
-
-.homework-card:hover {
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-  transform: translateY(-2px);
-}
-
-.homework-info {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.info-row {
-  display: flex;
-  justify-content: space-between;
-  font-size: 14px;
-  color: #606266;
-}
-
-.label {
-  font-weight: 600;
-  color: #303133;
 }
 </style>

@@ -1,98 +1,78 @@
-<template>
+﻿<template>
   <el-container class="homework-list-container">
     <el-header class="top-header">
-      <el-button v-if="!inDashboard" type="primary" link icon="ArrowLeft" @click="goBack">← Back</el-button>
-      <span class="page-title">📋 Grade Assignments List</span>
-      <span></span>
+      <div style="display:flex; align-items:center; gap:15px;">
+        <el-button v-if="!inDashboard" type="primary" link @click="goBack">← Back</el-button>
+        <span class="page-title">📋 {{ $t('teacher_hw.title', 'Grade Assignments List') }}</span>
+      </div>
+      <div style="display:flex; gap:10px; align-items:center;">
+        <el-select v-model="filterClass" placeholder="Class" clearable @change="handleFilterChange" style="width: 150px;">
+          <el-option v-for="item in classList" :key="item.value" :label="item.label" :value="item.value" />
+        </el-select>
+        <el-radio-group v-model="filterStatus" @change="handleFilterChange">
+          <el-radio-button label="all">All</el-radio-button>
+          <el-radio-button label="pending">Pending</el-radio-button>
+          <el-radio-button label="reviewed">Reviewed</el-radio-button>
+        </el-radio-group>
+        <el-button type="primary" @click="refreshAssignments">🔄 Refresh</el-button>
+      </div>
     </el-header>
 
     <el-main class="main-content">
-      <!-- 选项卡：Pending / Reviewed -->
-      <el-tabs v-model="activeTab" @tab-change="changeTab">
-        <el-tab-pane label="Pending" name="pending">
-          <el-alert 
-            v-if="allAssignments.length > 0"
-            :title="`📋 Notice：Loaded ${allAssignments.length} assignments, Pending ${pendingAssignments.length} items`"
-            type="info"
-            style="margin-bottom: 20px;"
-          />
-          <div v-if="pendingAssignments.length === 0" style="text-align: center; padding: 40px;">
-            <el-empty description="No pending assignments" />
-          </div>
-          <el-table v-else :data="pendingAssignments" border style="width: 100%">
-            <el-table-column prop="knowledge" label="Knowledge Point" width="200" />
-            <el-table-column prop="studentName" label="Student Name" width="120" />
-            <el-table-column prop="submittedAt" label="Submission Time" width="180">
-              <template #default="{ row }">
-                {{ formatTime(row.submittedAt) }}
-              </template>
-            </el-table-column>
-            <el-table-column prop="difficulty" label="Difficulty" width="100">
-              <template #default="{ row }">
-                <el-tag :type="getDifficultyType(row.difficulty)">
-                  {{ row.difficulty === 'easy' ? 'Easy' : row.difficulty === 'medium' ? 'Medium' : 'Hard' }}
-                </el-tag>
-              </template>
-            </el-table-column>
-            <el-table-column prop="questionCount" label="Question Count" width="120" />
-            <el-table-column label="Action" min-width="160" fixed="right">
-              <template #default="{ row }">
-                <el-button 
-                  type="primary" 
-                  size="small"
-                  @click="goToGrading(row)"
-                >
-                  Review & Grade →
-                </el-button>
-              </template>
-            </el-table-column>
-          </el-table>
-        </el-tab-pane>
+      <el-card shadow="never" v-loading="isLoading">
+        <el-table :data="assignments" border style="width: 100%">
+          <el-table-column prop="knowledge" label="Knowledge Point" min-width="150" />
+          <el-table-column prop="studentName" label="Student Name" width="120" />
+          <el-table-column prop="className" label="Class" width="140" />
+          <el-table-column prop="submittedAt" label="Submission Time" width="160">
+            <template #default="{ row }">
+              {{ formatTime(row.submittedAt) || formatTime(row.updatedAt) }}
+            </template>
+          </el-table-column>
+          <el-table-column prop="status" label="Status" width="120">
+            <template #default="{ row }">
+              <el-tag :type="row.status === 'REVIEWED' ? 'success' : row.status === 'SUBMITTED' ? 'warning' : 'info'">
+                {{ row.status === 'REVIEWED' ? 'Reviewed' : row.status === 'SUBMITTED' ? 'Pending' : row.status }}
+              </el-tag>
+            </template>
+          </el-table-column>
+          <el-table-column prop="score" label="Score" width="100">
+            <template #default="{ row }">
+              <span v-if="row.score !== null">{{ row.score }}</span>
+              <span v-else>-</span>
+            </template>
+          </el-table-column>
+          <el-table-column label="Action" width="150" fixed="right">
+            <template #default="{ row }">
+              <el-button type="primary" size="small" @click="goToGrading(row)">
+                {{ row.status === 'REVIEWED' ? 'View / Edit' : 'Grade' }}
+              </el-button>
+            </template>
+          </el-table-column>
+        </el-table>
 
-        <el-tab-pane label="Reviewed" name="reviewed">
-          <div v-if="reviewedAssignments.length === 0" style="text-align: center; padding: 40px;">
-            <el-empty description="No reviewed assignments" />
-          </div>
-          <el-table v-else :data="reviewedAssignments" border style="width: 100%">
-            <el-table-column prop="knowledge" label="Knowledge Point" width="200" />
-            <el-table-column prop="studentName" label="Student Name" width="120" />
-            <el-table-column prop="score" label="Score" width="100" />
-            <el-table-column prop="submittedAt" label="Submission Time" width="180">
-              <template #default="{ row }">
-                {{ formatTime(row.submittedAt) }}
-              </template>
-            </el-table-column>
-            <el-table-column prop="reviewedAt" label="Grading Time" width="180">
-              <template #default="{ row }">
-                {{ formatTime(row.reviewedAt) }}
-              </template>
-            </el-table-column>
-            <el-table-column label="Action" min-width="160" fixed="right">
-              <template #default="{ row }">
-                <el-button 
-                  type="primary" 
-                  link
-                  size="small"
-                  @click="goToGrading(row)"
-                >
-                  View / Edit →
-                </el-button>
-              </template>
-            </el-table-column>
-          </el-table>
-        </el-tab-pane>
-      </el-tabs>
+        <div style="margin-top: 20px; display: flex; justify-content: flex-end">
+          <el-pagination
+            v-model:current-page="pageNo"
+            v-model:page-size="pageSize"
+            :page-sizes="[10, 20, 30, 50]"
+            layout="total, sizes, prev, pager, next, jumper"
+            :total="total"
+            @size-change="handleSizeChange"
+            @current-change="handleCurrentChange"
+          />
+        </div>
+      </el-card>
     </el-main>
   </el-container>
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, computed } from 'vue'
+import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
-import { getTeacherPublishedHomeworkApi } from '@/api/ai'
+import { getTeacherAssignmentsPageApi, getHomeworkPublishTargetsApi } from '@/api/ai'
 import { useUserStore } from '@/stores/user'
-import { ArrowLeft } from '@element-plus/icons-vue'
 
 const props = defineProps<{ inDashboard?: boolean }>()
 const emit = defineEmits(['grade'])
@@ -100,85 +80,85 @@ const emit = defineEmits(['grade'])
 const router = useRouter()
 const userStore = useUserStore()
 
-const activeTab = ref('pending')
-const allAssignments = ref<any[]>([])
+const assignments = ref<any[]>([])
 const isLoading = ref(false)
+const classList = ref<{label: string, value: string | number}[]>([])
 
-const getDifficultyType = (difficulty: string) => {
-  return difficulty === 'easy' ? 'success' : difficulty === 'medium' ? 'warning' : 'danger'
-}
+const filterClass = ref<string | number>('')
+const filterStatus = ref('all')
+const pageNo = ref(1)
+const pageSize = ref(10)
+const total = ref(0)
 
 const formatTime = (time: string) => {
   if (!time) return '-'
-  return new Date(time).toLocaleString('zh-CN')
+  return new Date(time).toLocaleString('zh-CN', { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' }).replace(/\//g, '-')
 }
 
-const pendingAssignments = computed(() => {
-  const result: any[] = []
-  
-  allAssignments.value.forEach((hw: any) => {
-    if (hw.pendingAssignments && Array.isArray(hw.pendingAssignments)) {
-      hw.pendingAssignments.forEach((assignment: any) => {
-        result.push({
-          homeworkId: hw.homeworkId,
-          studentId: assignment.studentId,
-          studentName: assignment.studentName,
-          knowledge: hw.knowledge,
-          difficulty: hw.difficulty,
-          questionCount: hw.questionCount,
-          status: assignment.status,
-          submittedAt: assignment.submittedAt,
-          score: assignment.score,
-          feedback: assignment.feedback
-        })
-      })
+const fetchClassList = async () => {
+  try {
+    const res = await getHomeworkPublishTargetsApi() as any
+    if (res.code === 0 && res.data) {
+      classList.value = (res.data.classes || []).map((item: any) => ({
+        label: item.className,
+        value: item.classId
+      }))
     }
-  })
-  
-  console.log('【Debug】PendingTotal assignments:', result.length)
-  return result
-})
+  } catch (error) {
+    console.error('Failed to load classes:', error)
+  }
+}
 
-const reviewedAssignments = computed(() => {
-  const result: any[] = []
-  
-  allAssignments.value.forEach((hw: any) => {
-    if (hw.reviewedAssignments && Array.isArray(hw.reviewedAssignments)) {
-      hw.reviewedAssignments.forEach((assignment: any) => {
-        result.push({
-          homeworkId: hw.homeworkId,
-          studentId: assignment.studentId,
-          studentName: assignment.studentName,
-          knowledge: hw.knowledge,
-          difficulty: hw.difficulty,
-          questionCount: hw.questionCount,
-          status: assignment.status,
-          submittedAt: assignment.submittedAt,
-          reviewedAt: assignment.reviewedAt,
-          score: assignment.score,
-          feedback: assignment.feedback
-        })
-      })
+const refreshAssignments = async () => {
+  if (!userStore.isLoggedIn) {
+    router.push('/login')
+    return
+  }
+
+  isLoading.value = true
+  try {
+    const response = await getTeacherAssignmentsPageApi({
+      pageNo: pageNo.value,
+      pageSize: pageSize.value,
+      classId: filterClass.value,
+      status: filterStatus.value === 'all' ? undefined : (filterStatus.value === 'pending' ? 'SUBMITTED' : filterStatus.value === 'reviewed' ? 'REVIEWED' : undefined)
+    }) as any
+
+    if (response.code === 0) {
+      assignments.value = response.data.records || []
+      total.value = response.data.total || 0
+      ElMessage.success(`Loaded ${assignments.value.length} records`)
+    } else {
+      ElMessage.error(response.message || 'Failed to load assignments')
     }
-  })
-  
-  console.log('【Debug】ReviewedTotal assignments:', result.length)
-  return result
-})
+  } catch (error: any) {
+    ElMessage.error(error.message || 'Network error')
+  } finally {
+    isLoading.value = false
+  }
+}
 
-const changeTab = () => {
-  console.log('【Debug】Switch tab to:', activeTab.value)
+const handleFilterChange = () => {
+  pageNo.value = 1
+  refreshAssignments()
+}
+
+const handleSizeChange = (val: number) => {
+  pageSize.value = val
+  refreshAssignments()
+}
+
+const handleCurrentChange = (val: number) => {
+  pageNo.value = val
+  refreshAssignments()
 }
 
 const goToGrading = (assignment: any) => {
-  console.log('【Debug】Click to grade，assignment Object:', JSON.stringify(assignment, null, 2))
-  console.log('【Debug】homeworkId:', assignment.homeworkId, 'studentId:', assignment.studentId)
-  
   if (!assignment.homeworkId || !assignment.studentId) {
-    ElMessage.error('Incomplete data: homeworkId=' + assignment.homeworkId + ', studentId=' + assignment.studentId)
+    ElMessage.error('Incomplete data: missing homeworkId or studentId')
     return
   }
-  
+
   if (props.inDashboard) {
     emit('grade', assignment)
   } else {
@@ -186,109 +166,42 @@ const goToGrading = (assignment: any) => {
       path: '/teacher-grading',
       query: {
         homeworkId: assignment.homeworkId.toString(),
-        studentId: assignment.studentId.toString()
-      }
+        studentId: assignment.studentId.toString(),
+      },
     })
   }
 }
 
-const goBack = () => {
-  router.back()
-}
+const goBack = () => router.back()
 
-const loadHomeworkList = async () => {
-  isLoading.value = true
-  try {
-    console.log('【Debug】Calling newAPI：GET /api/homework/teacher/published')
-    const response = await getTeacherPublishedHomeworkApi() as any
-    console.log('【Debug】Teacher published HW response:', response)
-
-    if (response.code === 0 && response.data) {
-      const rawData = response.data
-      
-      // rawData should be assignment array，each includes pendingAssignments and reviewedAssignments
-      if (!Array.isArray(rawData)) {
-        console.log('【Debug】Response is not array')
-        allAssignments.value = Array.isArray(rawData) ? rawData : [rawData]
-      } else {
-        allAssignments.value = rawData
-      }
-      
-      console.log('【Debug】Load complete:')
-      console.log('  - Total assignments:', allAssignments.value.length)
-      
-      // Calculate totals for debug
-      let totalPending = 0
-      let totalReviewed = 0
-      
-      allAssignments.value.forEach((hw: any, idx: number) => {
-        const pending = (hw.pendingAssignments || []).length
-        const reviewed = (hw.reviewedAssignments || []).length
-        totalPending += pending
-        totalReviewed += reviewed
-        
-        console.log(`  - Assignments ${idx} (${hw.knowledge}): Pending${pending}items, Reviewed${reviewed}items`)
-      })
-      
-      console.log(`【Debug】Total: Pending${totalPending}items, Reviewed${totalReviewed}items`)
-      
-      if (allAssignments.value.length === 0) {
-        ElMessage.info('No homework data')
-      }
-    } else {
-      console.log('【Debug】API Error or empty')
-      ElMessage.error(response.message || 'Failed to load list')
-    }
-  } catch (error: any) {
-    console.error('【Debug】Exception loading list:', error)
-    ElMessage.error('Failed to load list: ' + (error.message || 'Please try again'))
-  } finally {
-    isLoading.value = false
-  }
-}
-
-onMounted(() => {
-  if (!userStore.isLoggedIn) {
-    router.push('/login')
-    return
-  }
-  
-  if (!userStore.isTeacher) {
-    ElMessage.error('Only teachers can access grading')
-    router.back()
-    return
-  }
-
-  loadHomeworkList()
+onMounted(async () => {
+  await fetchClassList()
+  refreshAssignments()
 })
 </script>
 
 <style scoped>
 .homework-list-container {
-  height: 100vh;
-  background-color: #f0f2f5;
-  display: flex;
-  flex-direction: column;
+  height: 100%;
+  background-color: #f5f7fa;
 }
 
 .top-header {
-  background-color: #ffffff;
-  border-bottom: 1px solid #e6e6e6;
   display: flex;
   justify-content: space-between;
   align-items: center;
+  background-color: #fff;
+  border-bottom: 1px solid #e4e7ed;
   padding: 0 20px;
 }
 
 .page-title {
   font-size: 18px;
-  font-weight: 600;
+  font-weight: bold;
   color: #303133;
 }
 
 .main-content {
-  flex: 1;
   padding: 20px;
-  overflow-y: auto;
 }
 </style>

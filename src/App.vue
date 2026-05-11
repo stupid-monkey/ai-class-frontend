@@ -53,16 +53,12 @@ const autoRefreshToken = async () => {
   if (!userStore.isLoggedIn || !userStore.token) {
     return
   }
-  
+
   try {
     const response = await refreshTokenApi(userStore.token)
     if (response.code === 0 && (response.data as any)?.token) {
       // 更新本地token
-      userStore.setUser(
-        (response.data as any).token,
-        userStore.userInfo!,
-        userStore.role
-      )
+      userStore.setUser((response.data as any).token, userStore.userInfo!, userStore.role)
       console.log('Token已刷新')
     }
   } catch (error: any) {
@@ -74,13 +70,13 @@ const autoRefreshToken = async () => {
 onMounted(() => {
   // 初始化活动计时器
   inactivityTimer = setTimeout(handleInactivity, INACTIVITY_TIMEOUT)
-  
+
   // 启动Token自动刷新定时器
   tokenRefreshTimer = setInterval(autoRefreshToken, TOKEN_REFRESH_INTERVAL)
-  
+
   // 监听用户交互事件
   const activityEvents = ['mousedown', 'keydown', 'scroll', 'touchstart', 'click']
-  activityEvents.forEach(event => {
+  activityEvents.forEach((event) => {
     document.addEventListener(event, recordActivity)
   })
 })
@@ -89,9 +85,9 @@ onMounted(() => {
 onBeforeUnmount(() => {
   if (inactivityTimer) clearTimeout(inactivityTimer)
   if (tokenRefreshTimer) clearInterval(tokenRefreshTimer)
-  
+
   const activityEvents = ['mousedown', 'keydown', 'scroll', 'touchstart', 'click']
-  activityEvents.forEach(event => {
+  activityEvents.forEach((event) => {
     document.removeEventListener(event, recordActivity)
   })
 })
@@ -99,7 +95,9 @@ onBeforeUnmount(() => {
 
 <style>
 /* 重置全局基础样式，确保聊天框能完美贴合浏览器边缘，没有多余白边 */
-html, body, #app {
+html,
+body,
+#app {
   margin: 0;
   padding: 0;
   height: 100%;

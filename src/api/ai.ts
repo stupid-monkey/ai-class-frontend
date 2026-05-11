@@ -7,9 +7,10 @@ import service from './request'
  * @param history 历史消息数组
  */
 export const aiChatApi = (data: {
+  sessionId?: string
   message: string
   history?: Array<{ role: string; content: string }>
-}) => post("/api/ai/chat", data)
+}) => post('/api/ai/chat', data)
 
 /**
  * AI 流式聊天（SSE）
@@ -18,23 +19,19 @@ export const aiChatApi = (data: {
  * 返回 EventSource，需手动处理 SSE 事件
  */
 export const aiStreamChatApi = (data: {
+  sessionId?: string
   message: string
   history?: Array<{ role: string; content: string }>
 }) => {
   const baseURL = localStorage.getItem('baseURL') || '/smartclassroom'
   const token = localStorage.getItem('token')
-  
+
   // 构建请求体
-  const queryString = new URLSearchParams({
-    message: data.message,
-    history: JSON.stringify(data.history || [])
-  }).toString()
-  
   const url = `${baseURL}/api/ai/chat/stream`
   const eventSource = new EventSource(url, {
-    headers: token ? { 'Authorization': `Bearer ${token}` } : {}
+    headers: token ? { Authorization: `Bearer ${token}` } : {},
   } as any)
-  
+
   return eventSource
 }
 
@@ -46,49 +43,50 @@ export const aiStreamChatApi = (data: {
  */
 export const aiStreamChatFetch = async (
   data: {
+    sessionId?: string
     message: string
     history?: Array<{ role: string; content: string }>
   },
   onData: (event: string, data: any) => void,
-  onError: (error: any) => void
+  onError: (error: any) => void,
 ) => {
   const token = localStorage.getItem('token')
   const globalConfig = (window as any).GLOBAL_CONFIG || {}
   const baseURL = globalConfig.API_BASE_URL || '/smartclassroom'
-  
+
   console.log('【API调试】流式聊天请求配置:', {
     url: `${baseURL}/api/ai/chat/stream`,
     token: token ? '已设置' : '未设置',
-    data: data
+    data: data,
   })
-  
+
   // 创建AbortController用于超时控制
   const controller = new AbortController()
   const timeoutId = setTimeout(() => controller.abort(), 30000) // 30秒超时
-  
+
   try {
     const response = await fetch(`${baseURL}/api/ai/chat/stream`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
       },
       body: JSON.stringify(data),
-      signal: controller.signal
+      signal: controller.signal,
     })
-    
+
     clearTimeout(timeoutId)
     console.log('【API调试】响应Status:', response.status, response.statusText)
-    
+
     if (!response.ok) {
       const errorText = await response.text()
       console.error('【API调试】响应错误:', errorText)
       throw new Error(`HTTP ${response.status}: ${errorText || response.statusText}`)
     }
-    
+
     const contentType = response.headers.get('content-type') || ''
     console.log('【API调试】响应类型:', contentType)
-    
+
     // 如果是普通JSON响应，直接处理
     if (contentType.includes('application/json')) {
       const jsonData = await response.json()
@@ -96,60 +94,95 @@ export const aiStreamChatFetch = async (
       onData('done', { reply: jsonData.data?.reply || jsonData.reply || JSON.stringify(jsonData) })
       return
     }
-    
+
     // 流式响应处理
     const reader = response.body?.getReader()
     if (!reader) {
       throw new Error('无法读取响应流')
     }
-    
+
     const decoder = new TextDecoder()
     let buffer = ''
     let hasReceivedData = false
-    
+    let currentEvent = 'message'
+    let currentData = ''
+
+    const flushEvent = () => {
+      const payload = currentData.trim()
+      if (!payload) {
+        currentEvent = 'message'
+        currentData = ''
+        return
+      }
+
+      if (payload === '[DONE]') {
+        onData('done', {})
+      } else {
+        try {
+          const parsed = JSON.parse(payload)
+          if (currentEvent === 'done') {
+            onData('done', parsed)
+          } else {
+            onData('data', parsed)
+          }
+        } catch {
+          if (currentEvent === 'done') {
+            onData('done', { reply: payload })
+          } else {
+            onData('data', { content: payload })
+          }
+        }
+      }
+
+      currentEvent = 'message'
+      currentData = ''
+    }
+
     while (true) {
       const { done, value } = await reader.read()
       if (done) {
         console.log('【API调试】流式传输完成')
+        if (currentData || buffer) {
+          currentData += buffer
+          flushEvent()
+        }
+        onData('done', {})
         break
       }
-      
+
       hasReceivedData = true
       buffer += decoder.decode(value, { stream: true })
-      const lines = buffer.split('\n')
-      
-      // 保留最后可能不完整的行
-      buffer = lines.length > 0 ? (lines[lines.length - 1] || '') : ''
-      
-      // 处理所有完整的行
-      const completeLines = lines.slice(0, -1)
-      for (const line of completeLines) {
-        if (line.startsWith('event: ')) {
-          const eventType = line.slice(7).trim()
-          console.log('【API调试】SSE事件类型:', eventType)
-        } else if (line.startsWith('data: ')) {
-          const dataStr = line.slice(6).trim()
-          try {
-            const jsonData = JSON.parse(dataStr)
-            console.log('【API调试】SSE数据:', jsonData)
-            onData('delta', jsonData)
-          } catch (e) {
-            // 如果不是JSON，当作普通文本处理
-            if (dataStr && dataStr !== '[DONE]') {
-              onData('delta', { content: dataStr })
-            }
-          }
+      const lines = buffer.split(/\r?\n/)
+      buffer = lines.pop() || ''
+
+      for (const rawLine of lines) {
+        const line = rawLine.trimEnd()
+        if (!line) {
+          flushEvent()
+          continue
         }
+        if (line.startsWith('event:')) {
+          currentEvent = line.slice(6).trim() || 'message'
+          continue
+        }
+        if (line.startsWith('data:')) {
+          const dataLine = line.slice(5).trim()
+          if (dataLine) {
+            currentData += dataLine
+          }
+          continue
+        }
+        currentData += line
       }
     }
-    
+
     if (!hasReceivedData) {
       console.warn('【API调试】未收到任何数据')
       onData('done', { reply: '暂无回复' })
     }
   } catch (error: any) {
     clearTimeout(timeoutId)
-    
+
     if (error.name === 'AbortError') {
       console.error('【API调试】请求超时')
       onError(new Error('请求超时，请检查后端服务是否正常运行'))
@@ -164,18 +197,21 @@ export const aiStreamChatFetch = async (
  * AI 智能出题
  * @param data 包含知识点、难度等级、题型、题目数量等参数的请求体
  */
-export const aiGenerateHomeworkApi = (data: FormData | {
-  knowledge: string
-  difficulty: 'easy' | 'medium' | 'hard'
-  questionTypes: ('choice' | 'judge')[]
-  questionCount: number
-  prompt?: string
-}) => {
+export const aiGenerateHomeworkApi = (
+  data:
+    | FormData
+    | {
+        knowledge: string
+        difficulty: 'easy' | 'medium' | 'hard'
+        questionTypes: ('choice' | 'judge')[]
+        questionCount: number
+        prompt?: string
+      },
+) => {
   // 当 data 为 FormData 时，不能手动设置 Content-Type，否则会丢失 boundary
-  const config = data instanceof FormData 
-    ? undefined 
-    : { headers: { 'Content-Type': 'application/json' } };
-  return service.post("/api/ai/homework/generate", data, config).then(res => res as any)
+  const config =
+    data instanceof FormData ? undefined : { headers: { 'Content-Type': 'application/json' } }
+  return service.post('/api/ai/homework/generate', data, config).then((res) => res as any)
 }
 
 /**
@@ -184,22 +220,25 @@ export const aiGenerateHomeworkApi = (data: FormData | {
  * @param pages 页数
  * @param style 风格
  */
-export const aiGeneratePPTOutlineApi = (data: FormData | {
-  topic: string
-  pages?: number
-  style?: string
-}) => {
-  const config = data instanceof FormData 
-    ? undefined 
-    : { headers: { 'Content-Type': 'application/json' } };
-  return service.post("/api/ai/ppt/generate", data, config).then(res => res as any);
+export const aiGeneratePPTOutlineApi = (
+  data:
+    | FormData
+    | {
+        topic: string
+        pages?: number
+        style?: string
+      },
+) => {
+  const config =
+    data instanceof FormData ? undefined : { headers: { 'Content-Type': 'application/json' } }
+  return service.post('/api/ai/ppt/generate', data, config).then((res) => res as any)
 }
 
 /**
  * 获取发布对象（班级和学生列表）
  * 用于前端"发布作业"弹窗加载班级和学生选择列表
  */
-export const getHomeworkPublishTargetsApi = () => get("/api/homework/publish-targets")
+export const getHomeworkPublishTargetsApi = () => get('/api/homework/publish-targets')
 
 /**
  * 发布作业
@@ -213,25 +252,47 @@ export const publishHomeworkApi = (data: {
   questionCount?: number
   studentIds?: number[]
   classIds?: number[]
-}) => post("/api/homework/publish", data)
+}) => post('/api/homework/publish', data)
 
 /**
  * 获取作业列表
  */
-export const getHomeworkListApi = () => get("/api/homework/list")
+export const getHomeworkListApi = () => get('/api/homework/list')
 
 /**
  * 获取教师已发布作业提交总览（包含所有学生的提交Status分类）
  * 返回数据包含：assignments、pendingAssignments、submittedAssignments、reviewedAssignments
  */
-export const getTeacherPublishedHomeworkApi = () => get("/api/homework/teacher/published")
+export const getTeacherPublishedHomeworkApi = () => get('/api/homework/teacher/published')
+
+/**
+ * 学生端分页查询作业列表
+ */
+export const getStudentHomeworkPageApi = (params: { pageNo?: number; pageSize?: number; status?: string }) => {
+  const query = new URLSearchParams()
+  if (params.pageNo) query.append('pageNo', String(params.pageNo))
+  if (params.pageSize) query.append('pageSize', String(params.pageSize))
+  if (params.status) query.append('status', params.status)
+  return get('/api/homework/student/page?' + query.toString())
+}
+
+/**
+ * 教师端分页查阅作业安排列表
+ */
+export const getTeacherAssignmentsPageApi = (params: { pageNo?: number; pageSize?: number; classId?: number | string | ''; status?: string }) => {
+  const query = new URLSearchParams()
+  if (params.pageNo) query.append('pageNo', String(params.pageNo))
+  if (params.pageSize) query.append('pageSize', String(params.pageSize))
+  if (params.classId) query.append('classId', String(params.classId))
+  if (params.status) query.append('status', params.status)
+  return get('/api/homework/teacher/assignments/page?' + query.toString())
+}
 
 /**
  * 获取作业详情
  * @param homeworkId 作业 ID
  */
-export const getHomeworkDetailApi = (homeworkId: number) => 
-  get(`/api/homework/${homeworkId}`)
+export const getHomeworkDetailApi = (homeworkId: number) => get(`/api/homework/${homeworkId}`)
 
 /**
  * 学生提交作业
@@ -244,7 +305,7 @@ export const submitHomeworkApi = (
   data: {
     answers: Array<{ questionIndex: number; answer: string }>
     note?: string
-  }
+  },
 ) => post(`/api/homework/${homeworkId}/submit`, data)
 
 /**
@@ -261,46 +322,77 @@ export const reviewHomeworkApi = (
     reviewMode?: 'manual' | 'ai'
     score?: number
     feedback?: string
-  }
+  },
 ) => post(`/api/homework/${homeworkId}/review`, data)
 
 /**
  * 获取教师的班级列表
  */
-export const getTeacherClassesApi = () => get("/api/teacher/classes")
+export const getTeacherClassesApi = () => get('/api/teacher/classes')
 
 /**
  * 获取班级内的学生列表
  * @param classId 班级 ID
  */
-export const getClassStudentsApi = (classId: number) => 
+export const getClassStudentsApi = (classId: number) =>
   get(`/api/teacher/classes/${classId}/students`)
 
 /**
  * 创建 PPT 任务（智能生成 PPT）
  * @param data PPT 任务参数 FormData 包含 file, prompt, pages, style
  */
-export const createPPTTaskApi = (data: FormData) => 
-  post("/api/smart-aippt/generate", data as any)
+export const createPPTTaskApi = (data: FormData) => post('/api/smart-aippt/generate', data as any)
 
 /**
  * 查询 PPT 任务Status（按本地记录 ID）
  * @param recordId 本地记录 ID
  */
-export const getPPTTaskByIdApi = (recordId: number) => 
-  get(`/api/smart-aippt/tasks/${recordId}`)
+export const getPPTTaskByIdApi = (recordId: number) => get(`/api/smart-aippt/tasks/${recordId}`)
 
 /**
  * 查询 PPT 状态（按远端任务 ID）
  * @param taskId 远端任务 ID
  */
-export const getPPTTaskByRemoteIdApi = (taskId: string) => 
+export const getPPTTaskByRemoteIdApi = (taskId: string) =>
   get(`/api/smart-aippt/tasks/remote/${taskId}`)
 
 /**
  * 创建 Gamma PPT 任务（智能生成 PPT）
  * @param data PPT 任务参数 FormData 包含 file, prompt, pages, style
  */
-export const createGammaPPTTaskApi = (data: FormData) => 
-  post("/api/smart-aippt/generate/gamma", data as any)
+export const createGammaPPTTaskApi = (data: FormData) =>
+  post('/api/smart-aippt/generate/gamma', data as any)
 
+/**
+ * 获取当前用户的 AI 问答记录（按 sessionId 分页）
+ */
+export const getMyChatRecordsApi = (params: { sessionId?: string; pageNo?: number; pageSize?: number }) => {
+  const query = new URLSearchParams()
+  if (params.sessionId) query.append('sessionId', params.sessionId)
+  if (params.pageNo) query.append('pageNo', String(params.pageNo))
+  if (params.pageSize) query.append('pageSize', String(params.pageSize))
+  return get('/api/ai/chat/records/me?' + query.toString())
+}
+
+/**
+ * 教师查看班级/学生的 AI 问答记录（分页）
+ */
+export const getTeacherChatRecordsApi = (params: { classId?: number; studentId?: number; sessionId?: string; pageNo?: number; pageSize?: number }) => {
+  const query = new URLSearchParams()
+  if (params.classId) query.append('classId', String(params.classId))
+  if (params.studentId) query.append('studentId', String(params.studentId))
+  if (params.sessionId) query.append('sessionId', params.sessionId)
+  if (params.pageNo) query.append('pageNo', String(params.pageNo))
+  if (params.pageSize) query.append('pageSize', String(params.pageSize))
+  return get('/api/ai/chat/records/teacher?' + query.toString())
+}
+
+/**
+ * 查询当前用户 AIPPT credits 明细（分页）
+ */
+export const getAipptCreditsApi = (params: { pageNo?: number; pageSize?: number }) => {
+  const query = new URLSearchParams()
+  if (params.pageNo) query.append('pageNo', String(params.pageNo))
+  if (params.pageSize) query.append('pageSize', String(params.pageSize))
+  return get('/api/smart-aippt/credits/me?' + query.toString())
+}
